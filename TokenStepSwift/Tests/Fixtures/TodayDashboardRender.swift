@@ -8,7 +8,14 @@ struct TodayDashboardRender {
         _ = NSApplication.shared
         try validateIsolatedAppSupport()
         let scenario = ProcessInfo.processInfo.environment["TOKENSTEP_TODAY_SCENARIO"] ?? "zh-normal"
-        try seedAppSupport(scenario: scenario)
+        let theme = ProcessInfo.processInfo.environment["TOKENSTEP_TODAY_THEME"] == "voyage"
+            ? TokenStepTheme.voyage
+            : TokenStepTheme.green
+        try seedAppSupport(scenario: scenario, theme: theme)
+        if let iconPath = ProcessInfo.processInfo.environment["TOKENSTEP_ICON_PATH"],
+           let icon = NSImage(contentsOfFile: iconPath) {
+            NSApp.applicationIconImage = icon
+        }
         let appState = AppState()
         let output = URL(fileURLWithPath: ProcessInfo.processInfo.environment["TOKENSTEP_TODAY_RENDER_PATH"] ?? "/tmp/tokenstep-today.png")
         try FileManager.default.createDirectory(at: output.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -27,7 +34,7 @@ struct TodayDashboardRender {
                     .environmentObject(appState)
             }
         }
-        .environment(\.colorScheme, .light)
+        .environment(\.colorScheme, theme.colorScheme)
         .environment(\.isScreenshotRendering, true)
 
         let renderer = ImageRenderer(content: content)
@@ -59,7 +66,7 @@ struct TodayDashboardRender {
     }
 
     @MainActor
-    private static func seedAppSupport(scenario: String) throws {
+    private static func seedAppSupport(scenario: String, theme: TokenStepTheme) throws {
         let today = DateFormatter.tokenStepDay.string(from: Date())
         let language: TokenStepLanguage = scenario == "en-normal" ? .en : .zhHans
         let models: [String: Int]
@@ -131,7 +138,7 @@ struct TodayDashboardRender {
             dailyGoalTokens: 500_000_000,
             refreshIntervalSeconds: 0,
             historyDays: 30,
-            theme: .green,
+            theme: theme,
             autoUpdateEnabled: false,
             askBeforeDownloadingUpdates: true,
             requireVerifiedUpdates: true,

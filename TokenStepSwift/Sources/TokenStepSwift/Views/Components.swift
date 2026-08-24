@@ -30,18 +30,24 @@ struct StatusBarLabelView: View {
 }
 
 struct TokenStepBackdrop: View {
+    var role: OdysseySurfaceRole = .generic
+
     var body: some View {
         ZStack {
             Color.tokenCanvas
-            LinearGradient(
-                colors: [
-                    Color.tokenMint.opacity(0.10),
-                    Color.clear,
-                    Color.tokenGreen.opacity(0.025)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageBackdropAtmosphere(role: role)
+            } else {
+                LinearGradient(
+                    colors: [
+                        Color.tokenMint.opacity(0.10),
+                        Color.clear,
+                        Color.tokenGreen.opacity(0.025)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         }
         .ignoresSafeArea()
     }
@@ -90,25 +96,25 @@ private struct TokenStepVectorMark: View {
                 .fill(Color.tokenSurface)
                 .overlay(
                     RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-                        .stroke(Color.black.opacity(0.05), lineWidth: max(0.8, size * 0.015))
+                        .stroke(Color.tokenHairline, lineWidth: max(0.8, size * 0.015))
                 )
 
             SelectedAppIconArcShape()
                 .stroke(
-                    Color(red: 64 / 255, green: 196 / 255, blue: 99 / 255),
+                    Color.tokenGreen,
                     style: StrokeStyle(lineWidth: size * 0.074, lineCap: .round, lineJoin: .round)
                 )
                 .frame(width: size, height: size)
 
             Circle()
-                .fill(Color(red: 64 / 255, green: 196 / 255, blue: 99 / 255))
+                .fill(Color.tokenGreen)
                 .frame(width: size * 0.105, height: size * 0.105)
                 .position(x: size * 0.707, y: size * 0.311)
 
-            stepBlock(x: 0.285, y: 0.625, width: 0.074, height: 0.076, color: Color(red: 155 / 255, green: 233 / 255, blue: 168 / 255))
-            stepBlock(x: 0.393, y: 0.533, width: 0.074, height: 0.168, color: Color(red: 64 / 255, green: 196 / 255, blue: 99 / 255))
-            stepBlock(x: 0.500, y: 0.445, width: 0.074, height: 0.256, color: Color(red: 48 / 255, green: 161 / 255, blue: 78 / 255))
-            stepBlock(x: 0.607, y: 0.348, width: 0.074, height: 0.354, color: Color(red: 33 / 255, green: 110 / 255, blue: 57 / 255))
+            stepBlock(x: 0.285, y: 0.625, width: 0.074, height: 0.076, color: TokenStepThemeRuntime.palette.activity1.color)
+            stepBlock(x: 0.393, y: 0.533, width: 0.074, height: 0.168, color: TokenStepThemeRuntime.palette.activity2.color)
+            stepBlock(x: 0.500, y: 0.445, width: 0.074, height: 0.256, color: TokenStepThemeRuntime.palette.activity3.color)
+            stepBlock(x: 0.607, y: 0.348, width: 0.074, height: 0.354, color: TokenStepThemeRuntime.palette.activity4.color)
         }
         .frame(width: size, height: size)
     }
@@ -162,8 +168,8 @@ struct ErrorBanner: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(.quaternary))
+        .background(Color.tokenSurface.opacity(0.96), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.tokenHairlineStrong))
     }
 }
 
@@ -173,7 +179,7 @@ struct UsageRecalibrationNotice: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "checkmark.circle.fill")
-                .foregroundStyle(Color.tokenGreen)
+                .foregroundStyle(Color.tokenSuccess)
                 .padding(.top, 1)
             Text(L("TokenStep 已按真实增量重新校准历史 Token。数字可能变小，但历史记录没有丢失。"))
                 .font(.callout.weight(.semibold))
@@ -188,10 +194,10 @@ struct UsageRecalibrationNotice: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
-        .background(Color.tokenMint.opacity(0.20), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.tokenSuccess.opacity(TokenStepThemeRuntime.isVoyage ? 0.12 : 0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.tokenGreen.opacity(0.18))
+                .stroke(Color.tokenSuccess.opacity(0.24))
         )
     }
 }
@@ -231,7 +237,7 @@ struct MetricPill: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 9)
         .background(Color.tokenSurface, in: Capsule())
-        .overlay(Capsule().stroke(Color.black.opacity(0.055)))
+        .overlay(Capsule().stroke(Color.tokenHairline))
     }
 }
 
@@ -243,11 +249,36 @@ struct TokenCard<Content: View>: View {
     }
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+
         content
             .padding(24)
-            .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.black.opacity(0.06)))
-            .shadow(color: Color.black.opacity(0.055), radius: 24, x: 0, y: 14)
+            .background {
+                ZStack {
+                    shape.fill(Color.tokenSurface)
+                    if TokenStepThemeRuntime.isVoyage {
+                        LinearGradient(
+                            colors: [
+                                Color.tokenGreen.opacity(0.055),
+                                Color.clear,
+                                Color.tokenGreenDark.opacity(0.025)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .clipShape(shape)
+                    }
+                }
+            }
+            .overlay {
+                ZStack {
+                    shape.stroke(Color.tokenHairline)
+                    if TokenStepThemeRuntime.isVoyage {
+                        VoyageCardOrnament(cornerRadius: 24)
+                    }
+                }
+            }
+            .shadow(color: Color.tokenShadow, radius: 24, x: 0, y: 14)
     }
 }
 
@@ -277,8 +308,8 @@ struct ScreenshotMenuButton: View {
                 .foregroundStyle(Color.tokenInk.opacity(0.76))
                 .frame(width: 34, height: 34)
                 .background(Color.tokenSurface, in: Circle())
-                .overlay(Circle().stroke(Color.black.opacity(0.07)))
-                .shadow(color: Color.black.opacity(0.055), radius: 9, x: 0, y: 5)
+                .overlay(Circle().stroke(Color.tokenHairline))
+                .shadow(color: Color.tokenShadow, radius: 9, x: 0, y: 5)
                 .contentShape(Circle())
         }
         .menuStyle(.button)
@@ -504,8 +535,8 @@ private struct ActivityHoverBadge: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(Color.tokenSurface.opacity(0.96), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.black.opacity(0.06)))
-        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 6)
+        .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.tokenHairline))
+        .shadow(color: Color.tokenShadow, radius: 12, x: 0, y: 6)
     }
 
     private var lapText: String {
@@ -685,7 +716,15 @@ func contributionColor(tokens: Int, goal: Int) -> Color {
 }
 
 func tokenToolColor(_ tool: String) -> Color {
-    AgentSourceRegistry.color(for: tool)
+    if TokenStepThemeRuntime.theme == .voyage {
+        let value = tool.lowercased()
+        let palette = TokenStepThemeRuntime.palette
+        if value.contains("codex") { return palette.activity4.color }
+        if value.contains("claude") { return palette.activity3.color }
+        if value.contains("cursor") { return palette.activity2.color }
+        return palette.activity1.color
+    }
+    return AgentSourceRegistry.color(for: tool)
 }
 
 func orderedToolEntries(_ tools: [String: Int]) -> [(name: String, tokens: Int)] {

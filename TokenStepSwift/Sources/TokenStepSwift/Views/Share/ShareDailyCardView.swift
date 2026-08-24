@@ -38,7 +38,7 @@ struct ShareDailyCardView: View {
 
     var body: some View {
         ZStack {
-            TokenStepBackdrop()
+            TokenStepBackdrop(role: .share)
 
             VStack(alignment: .leading, spacing: 14) {
                 header
@@ -60,23 +60,20 @@ struct ShareDailyCardView: View {
                 footer
             }
             .padding(28)
+
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageWindowFrame(inset: 8)
+            }
         }
-        .frame(width: 600, height: 840)
+        .frame(width: 600, height: 980)
         .fixedSize()
+        .environment(\.colorScheme, appState.settings.theme.colorScheme)
         .id(appState.appearanceID)
     }
 
     private var header: some View {
         HStack(spacing: 12) {
-            TokenStepMark(size: 42)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("TokenStep")
-                    .font(.system(size: 27, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color.tokenInk)
-                Text(L("每日 Token 消耗追踪"))
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
-            }
+            TokenStepBrandLockup(markSize: 42, titleSize: 23)
             Spacer()
             VStack(alignment: .trailing, spacing: 3) {
                 Text(mode.title)
@@ -91,57 +88,73 @@ struct ShareDailyCardView: View {
 
     private var shareHero: some View {
         ShareCardSurface(padding: 20, cornerRadius: 26) {
-            HStack(alignment: .center, spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(lap.color.opacity(0.09))
-                        .frame(width: 228, height: 228)
-                        .blur(radius: 10)
-                    ProgressRingView(progress: lap.currentLapProgress, lineWidth: 20, color: lap.color)
-                        .frame(width: 212, height: 212)
-                    VStack(spacing: 7) {
-                        Text(dayNumber)
-                            .font(.system(size: 64, weight: .black, design: .rounded))
-                            .foregroundStyle(Color.tokenInk)
-                            .minimumScaleFactor(0.42)
-                            .lineLimit(1)
-                        Text(LFormat("/ %@ 每圈", TokenStepFormat.tokens(appState.settings.dailyGoalTokens, compact: true)))
-                            .font(.headline.weight(.heavy))
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(width: 182)
+            ZStack(alignment: .trailing) {
+                if TokenStepThemeRuntime.isVoyage {
+                    OdysseySurfaceEmblem(role: .share)
+                        .frame(width: 230, height: 210)
+                        .opacity(0.24)
+                        .offset(x: 18, y: 12)
                 }
-                .frame(width: 224, height: 224)
 
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(mode.subtitle)
-                        .font(.callout.weight(.heavy))
-                        .foregroundStyle(.secondary)
-                    HStack(alignment: .lastTextBaseline, spacing: 8) {
-                        Text(totalCompletionText)
-                            .font(.system(size: 58, weight: .black, design: .rounded))
-                            .foregroundStyle(lap.color)
-                            .lineLimit(1)
-                        Text(L("总完成度"))
+                HStack(alignment: .center, spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .fill(lap.color.opacity(0.09))
+                            .frame(width: 228, height: 228)
+                            .blur(radius: 10)
+                        Group {
+                            if TokenStepThemeRuntime.isVoyage {
+                                VoyageBowProgressView(progress: lap.currentLapProgress, lineWidth: 20, color: lap.color)
+                            } else {
+                                ProgressRingView(progress: lap.currentLapProgress, lineWidth: 20, color: lap.color)
+                            }
+                        }
+                        .frame(width: 212, height: 212)
+                        VStack(spacing: 7) {
+                            Text(dayNumber)
+                                .font(.system(size: 64, weight: .black, design: .rounded))
+                                .foregroundStyle(Color.tokenInk)
+                                .minimumScaleFactor(0.42)
+                                .lineLimit(1)
+                            Text(LFormat("/ %@ 每圈", TokenStepFormat.tokens(appState.settings.dailyGoalTokens, compact: true)))
+                                .font(.headline.weight(.heavy))
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(width: 182)
+                    }
+                    .frame(width: 224, height: 224)
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(mode.subtitle)
                             .font(.callout.weight(.heavy))
                             .foregroundStyle(.secondary)
+                        HStack(alignment: .lastTextBaseline, spacing: 8) {
+                            Text(totalCompletionText)
+                                .font(.system(size: 58, weight: .black, design: .rounded))
+                                .foregroundStyle(lap.color)
+                                .lineLimit(1)
+                            Text(L("总完成度"))
+                                .font(.callout.weight(.heavy))
+                                .foregroundStyle(.secondary)
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(lap.completedLapsText)
+                                .font(.title3.weight(.heavy))
+                                .foregroundStyle(Color.tokenInk.opacity(0.78))
+                            Text(lap.perLapGoalText)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.secondary)
+                            Text(mode == .yesterday ? comparisonText : L("今日 Token"))
+                                .font(.subheadline.weight(.heavy))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
                     }
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(lap.completedLapsText)
-                            .font(.title3.weight(.heavy))
-                            .foregroundStyle(Color.tokenInk.opacity(0.78))
-                        Text(lap.perLapGoalText)
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(.secondary)
-                        Text(mode == .yesterday ? comparisonText : L("今日 Token"))
-                            .font(.subheadline.weight(.heavy))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 232)
             }
-            .frame(height: 232)
+            .frame(width: 504, height: 232)
         }
     }
 
@@ -268,7 +281,7 @@ private struct ShareMetricTile: View {
         .padding(13)
         .frame(height: 96, alignment: .topLeading)
         .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.black.opacity(0.055)))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.tokenHairline))
     }
 }
 
@@ -316,7 +329,7 @@ private struct ShareHeroRankRow: View {
         .padding(.horizontal, 10)
         .frame(height: 34)
         .background(Color.tokenSurface.opacity(0.72), in: Capsule())
-        .overlay(Capsule().stroke(Color.black.opacity(0.045)))
+        .overlay(Capsule().stroke(Color.tokenHairline))
     }
 }
 
@@ -425,10 +438,31 @@ private struct ShareCardSurface<Content: View>: View {
     }
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+
         content
             .padding(padding)
-            .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous).stroke(Color.black.opacity(0.055)))
-            .shadow(color: Color.black.opacity(0.045), radius: 18, x: 0, y: 10)
+            .background {
+                ZStack {
+                    shape.fill(Color.tokenSurface)
+                    if TokenStepThemeRuntime.isVoyage {
+                        LinearGradient(
+                            colors: [Color.tokenGreen.opacity(0.055), Color.clear, Color.tokenGreenDark.opacity(0.025)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .clipShape(shape)
+                    }
+                }
+            }
+            .overlay {
+                ZStack {
+                    shape.stroke(Color.tokenHairline)
+                    if TokenStepThemeRuntime.isVoyage {
+                        VoyageCardOrnament(cornerRadius: cornerRadius)
+                    }
+                }
+            }
+            .shadow(color: Color.tokenShadow, radius: 18, x: 0, y: 10)
     }
 }

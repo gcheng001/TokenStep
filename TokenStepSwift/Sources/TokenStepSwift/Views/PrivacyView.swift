@@ -18,6 +18,14 @@ struct PrivacyView: View {
                     PrivacyFactRow(title: L("不做"), value: L("不开代理 · 不按字数估算 token"))
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if TokenStepThemeRuntime.isVoyage {
+                    OdysseySurfaceEmblem(role: .privacy)
+                        .frame(width: 132, height: 104)
+                        .padding(14)
+                        .opacity(0.48)
+                }
+            }
 
             HStack(alignment: .top, spacing: 13) {
                 TokenCard {
@@ -59,7 +67,7 @@ struct PrivacyView: View {
                 }
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(Color(red: 0.42, green: 0.36, blue: 0.82).opacity(0.16))
+                        .stroke(TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color(red: 0.42, green: 0.36, blue: 0.82).opacity(0.16))
                 )
             }
 
@@ -122,13 +130,13 @@ private struct PrivacyFactRow: View {
             Spacer(minLength: 12)
             Text(value)
                 .font(.callout.weight(.semibold))
-                .foregroundStyle(emphasis ? Color(red: 0.56, green: 0.21, blue: 0.09) : Color.secondary)
+                .foregroundStyle(emphasis ? Color.tokenWarning : Color.secondary)
                 .multilineTextAlignment(.trailing)
         }
         .padding(.vertical, 7)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }
@@ -155,7 +163,7 @@ private struct PrivacyNetworkRow: View {
         .padding(.vertical, 7)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }

@@ -20,6 +20,56 @@ enum DataService {
         return normalize(settings)
     }
 
+    static func loadSettingsForAppLaunch() -> TokenStepSettings {
+        let loaded = loadSettings()
+        let voyageMarkerExists = FileManager.default.fileExists(
+            atPath: AppPaths.voyageThemeMigrationMarker.path
+        )
+        let migrated = applyingVoyageThemeMigration(
+            loaded,
+            markerExists: voyageMarkerExists
+        )
+        let odysseyMarkerExists = FileManager.default.fileExists(
+            atPath: AppPaths.odysseyThemePackMigrationMarker.path
+        )
+        guard !voyageMarkerExists || !odysseyMarkerExists else { return migrated }
+
+        do {
+            // 0.2.4 persists the decoded theme-pack defaults even when the 0.2.3
+            // JSON did not yet contain classic_theme or odyssey_chapter.
+            try saveSettings(migrated)
+            try FileManager.default.createDirectory(
+                at: AppPaths.voyageThemeMigrationMarker.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            if !voyageMarkerExists {
+                try Data("0.2.3\n".utf8).write(
+                    to: AppPaths.voyageThemeMigrationMarker,
+                    options: .atomic
+                )
+            }
+            if !odysseyMarkerExists {
+                try Data("0.2.4\n".utf8).write(
+                    to: AppPaths.odysseyThemePackMigrationMarker,
+                    options: .atomic
+                )
+            }
+        } catch {
+            // Keep the in-memory skin selection active even if persistence is temporarily unavailable.
+        }
+        return migrated
+    }
+
+    static func applyingVoyageThemeMigration(
+        _ settings: TokenStepSettings,
+        markerExists: Bool
+    ) -> TokenStepSettings {
+        guard !markerExists else { return settings }
+        var migrated = settings
+        migrated.theme = .voyage
+        return migrated
+    }
+
     static func requiresImmediateCodexRecalibration(_ snapshot: UsageSnapshot) -> Bool {
         guard let codex = snapshot.sources["Codex"],
               (codex.records ?? 0) > 0
@@ -301,7 +351,9 @@ enum DataService {
             agentWorkRankVisibility: settings.agentWorkRankVisibility,
             showExperimentalAgentSources: settings.showExperimentalAgentSources,
             language: settings.language,
-            skippedUpdateVersion: settings.skippedUpdateVersion
+            skippedUpdateVersion: settings.skippedUpdateVersion,
+            classicTheme: settings.classicTheme,
+            odysseyChapter: settings.odysseyChapter
         )
     }
 }

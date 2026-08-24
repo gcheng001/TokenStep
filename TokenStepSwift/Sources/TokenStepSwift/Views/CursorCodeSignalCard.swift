@@ -49,11 +49,19 @@ struct CursorCodeSignalCard: View {
         }
         .overlay(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(Color(red: 0.42, green: 0.36, blue: 0.82).opacity(0.18))
+                .stroke(TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color(red: 0.42, green: 0.36, blue: 0.82).opacity(0.18))
         )
     }
 
     private func modelDot(_ index: Int) -> Color {
+        if TokenStepThemeRuntime.isVoyage {
+            let colors = [
+                TokenStepThemeRuntime.palette.activity4.color,
+                TokenStepThemeRuntime.palette.activity3.color,
+                TokenStepThemeRuntime.palette.activity2.color
+            ]
+            return colors[min(index, colors.count - 1)]
+        }
         let colors = [
             Color(red: 0.42, green: 0.36, blue: 0.82),
             Color(red: 0.56, green: 0.50, blue: 0.88),
@@ -105,7 +113,7 @@ struct TodayKVRowPublic: View {
         .padding(.vertical, 7)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }

@@ -129,7 +129,7 @@ final class AppState: ObservableObject {
     }
 
     var appearanceID: String {
-        "\(settings.theme.id)-\(settings.language.resolved.id)"
+        "\(settings.theme.id)-\(settings.classicTheme.id)-\(settings.odysseyChapter.id)-\(settings.language.resolved.id)"
     }
 
     var shouldShowAgentWorkRank: Bool {
@@ -138,9 +138,12 @@ final class AppState: ObservableObject {
 
     func load() {
         defer { MemoryPressure.relieveAllocatorPressure() }
-        let loadedSettings = DataService.loadSettings()
+        let loadedSettings = DataService.loadSettingsForAppLaunch()
         TokenStepLocalization.apply(loadedSettings.language)
-        TokenStepThemeRuntime.apply(loadedSettings.theme)
+        TokenStepThemeRuntime.apply(
+            loadedSettings.theme,
+            odysseyChapter: loadedSettings.odysseyChapter
+        )
         settings = loadedSettings
         snapshot = (try? DataService.loadSnapshot()) ?? .empty
         ledgerSnapshot = snapshot
@@ -405,8 +408,47 @@ final class AppState: ObservableObject {
     }
 
     func setTheme(_ theme: TokenStepTheme) {
-        TokenStepThemeRuntime.apply(theme)
-        settings.theme = theme
+        if theme == .voyage {
+            settings.theme = .voyage
+        } else {
+            settings.classicTheme = theme
+            settings.theme = theme
+        }
+        TokenStepThemeRuntime.apply(
+            settings.theme,
+            odysseyChapter: settings.odysseyChapter
+        )
+        saveSettingsAndReload()
+    }
+
+    func setThemePack(_ pack: TokenStepThemePack) {
+        settings.theme = pack == .odyssey ? .voyage : settings.classicTheme
+        TokenStepThemeRuntime.apply(
+            settings.theme,
+            odysseyChapter: settings.odysseyChapter
+        )
+        saveSettingsAndReload()
+    }
+
+    func setClassicTheme(_ theme: TokenStepTheme) {
+        guard TokenStepTheme.classicCases.contains(theme) else { return }
+        settings.classicTheme = theme
+        if settings.themePack == .classic {
+            settings.theme = theme
+        }
+        TokenStepThemeRuntime.apply(
+            settings.theme,
+            odysseyChapter: settings.odysseyChapter
+        )
+        saveSettingsAndReload()
+    }
+
+    func setOdysseyChapter(_ chapter: TokenStepOdysseyChapter) {
+        settings.odysseyChapter = chapter
+        TokenStepThemeRuntime.apply(
+            settings.theme,
+            odysseyChapter: settings.odysseyChapter
+        )
         saveSettingsAndReload()
     }
 
@@ -767,6 +809,39 @@ final class AppState: ObservableObject {
         availableUpdate = nil
     }
 
+#if TOKENSTEP_TESTING
+    func installRenderFixture(
+        snapshot: UsageSnapshot,
+        settings: TokenStepSettings,
+        quotas: [QuotaProviderID: ProviderQuota] = [:],
+        tokenRank: TokenRankLeaderboard? = nil,
+        agentWorkRankIdentity: AgentWorkRankIdentity? = nil
+    ) {
+        timer?.invalidate()
+        foregroundTimer?.invalidate()
+        timer = nil
+        foregroundTimer = nil
+        TokenStepLocalization.apply(settings.language)
+        TokenStepThemeRuntime.apply(
+            settings.theme,
+            odysseyChapter: settings.odysseyChapter
+        )
+        self.settings = settings
+        self.snapshot = snapshot
+        ledgerSnapshot = snapshot
+        self.quotas = quotas
+        self.tokenRank = tokenRank
+        self.agentWorkRankIdentity = agentWorkRankIdentity
+        tokenRankError = nil
+        isRefreshingTokenRank = false
+        isRefreshing = false
+        isRefreshingCodexQuota = false
+        availableUpdate = nil
+        lastError = nil
+        showsUsageRecalibrationNotice = false
+    }
+#endif
+
     func skipAvailableUpdate() {
         guard let version = availableUpdate?.version else { return }
         settings.skippedUpdateVersion = version
@@ -814,7 +889,10 @@ final class AppState: ObservableObject {
             try DataService.saveSettings(settings)
             let loadedSettings = DataService.loadSettings()
             TokenStepLocalization.apply(loadedSettings.language)
-            TokenStepThemeRuntime.apply(loadedSettings.theme)
+            TokenStepThemeRuntime.apply(
+                loadedSettings.theme,
+                odysseyChapter: loadedSettings.odysseyChapter
+            )
             settings = loadedSettings
         } catch {
             lastError = error.localizedDescription

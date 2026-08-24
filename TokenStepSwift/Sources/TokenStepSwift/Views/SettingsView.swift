@@ -20,8 +20,13 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.isScreenshotRendering) private var isScreenshotRendering
-    var captureMode = false
-    @State private var pane: SettingsPane = .dataSources
+    var captureMode: Bool
+    @State private var pane: SettingsPane
+
+    init(captureMode: Bool = false, initialPane: SettingsPane = .dataSources) {
+        self.captureMode = captureMode
+        _pane = State(initialValue: initialPane)
+    }
 
     var body: some View {
         Group {
@@ -31,12 +36,13 @@ struct SettingsView: View {
                 windowBody
             }
         }
+        .environment(\.colorScheme, appState.settings.theme.colorScheme)
         .id(appState.appearanceID)
     }
 
     private var windowBody: some View {
         ZStack {
-            TokenStepBackdrop()
+            TokenStepBackdrop(role: .settings)
             VStack(spacing: 0) {
                 header
                     .padding(.top, 28)
@@ -53,11 +59,16 @@ struct SettingsView: View {
             }
         }
         .frame(width: 920, height: 760)
+        .overlay {
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageWindowFrame(inset: 8)
+            }
+        }
     }
 
     private var captureBody: some View {
         ZStack {
-            TokenStepBackdrop()
+            TokenStepBackdrop(role: .settings)
             VStack(alignment: .leading, spacing: 18) {
                 header
                 SettingsDataSourcesPane(openQuotaTab: {})
@@ -91,7 +102,10 @@ struct SettingsView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            TokenStepMark(size: 28)
+            TokenStepBrandLockup(markSize: 28, titleSize: 17)
+            Rectangle()
+                .fill(Color.tokenDivider)
+                .frame(width: 1, height: 24)
             Text(L("设置"))
                 .font(.system(size: 18, weight: .heavy, design: .rounded))
                 .foregroundStyle(Color.tokenInk)
@@ -118,6 +132,14 @@ struct SettingsView: View {
                     copyAction: copySettingsScreenshot,
                     saveAction: saveSettingsScreenshot
                 )
+            }
+        }
+        .background(alignment: .trailing) {
+            if TokenStepThemeRuntime.isVoyage {
+                OdysseySurfaceEmblem(role: .settings)
+                    .frame(width: 124, height: 72)
+                    .opacity(0.38)
+                    .offset(x: -92, y: 3)
             }
         }
     }
@@ -182,7 +204,7 @@ struct SettingsView: View {
         .padding(.top, 12)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.black.opacity(0.06))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }
@@ -190,7 +212,9 @@ struct SettingsView: View {
     private func resetDefaults() {
         appState.setGoal(TokenStepSettings.defaults.dailyGoalTokens)
         appState.setRefreshInterval(TokenStepSettings.defaults.refreshIntervalSeconds)
-        appState.setTheme(TokenStepSettings.defaults.theme)
+        appState.setClassicTheme(TokenStepSettings.defaults.classicTheme)
+        appState.setOdysseyChapter(TokenStepSettings.defaults.odysseyChapter)
+        appState.setThemePack(TokenStepSettings.defaults.themePack)
         appState.setLanguage(TokenStepSettings.defaults.language)
         appState.setAutoUpdateEnabled(TokenStepSettings.defaults.autoUpdateEnabled)
         appState.setAskBeforeDownloadingUpdates(TokenStepSettings.defaults.askBeforeDownloadingUpdates)
@@ -221,10 +245,16 @@ private struct DashboardSettingsTab: View {
                 .padding(.horizontal, 14)
                 .frame(height: 28)
                 .background(
-                    selected ? Color.tokenSurface : Color.clear,
+                    selected
+                        ? (TokenStepThemeRuntime.isVoyage ? Color.tokenGreen.opacity(0.16) : Color.tokenSurface)
+                        : Color.clear,
                     in: RoundedRectangle(cornerRadius: 7, style: .continuous)
                 )
-                .shadow(color: selected ? Color.black.opacity(0.07) : .clear, radius: 3, y: 1)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(selected && TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color.clear)
+                )
+                .shadow(color: selected ? Color.tokenShadow : .clear, radius: 3, y: 1)
         }
         .buttonStyle(.plain)
     }

@@ -21,7 +21,8 @@ RESOURCES="$CONTENTS/Resources"
 EXECUTABLE="$BUILD_DIR/$PRODUCT_NAME"
 HELPER_EXECUTABLE="$BUILD_DIR/$HELPER_NAME"
 ICON_FILE="$ROOT_DIR/TokenUsageMenuApp/assets/TokenStepIcon.icns"
-VERSION="${TOKENSTEP_VERSION:-0.2.2}"
+ODYSSEY_ASSET_DIR="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey"
+VERSION="${TOKENSTEP_VERSION:-0.2.4}"
 LAUNCH=true
 VERIFY=false
 
@@ -121,6 +122,9 @@ cp "$EXECUTABLE" "$MACOS/$PRODUCT_NAME"
 cp "$HELPER_EXECUTABLE" "$HELPERS/$HELPER_NAME"
 if [ -f "$ICON_FILE" ]; then
   cp "$ICON_FILE" "$RESOURCES/TokenStepIcon.icns"
+fi
+if [ -d "$ODYSSEY_ASSET_DIR" ]; then
+  cp "$ODYSSEY_ASSET_DIR"/*.png "$RESOURCES/"
 fi
 
 cat > "$CONTENTS/Info.plist" <<PLIST

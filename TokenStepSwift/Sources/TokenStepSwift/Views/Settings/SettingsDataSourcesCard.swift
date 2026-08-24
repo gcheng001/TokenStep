@@ -184,14 +184,13 @@ struct SettingsSourceRow: View {
             if showsToggle, let isOn {
                 Toggle("", isOn: isOn)
                     .labelsHidden()
-                    .toggleStyle(.switch)
-                    .controlSize(.small)
+                    .toggleStyle(TokenStepSwitchToggleStyle())
             }
         }
         .padding(.vertical, 9)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }

@@ -103,14 +103,54 @@ extension DateFormatter {
 }
 
 extension Color {
-    static let tokenInk = Color(red: 31 / 255, green: 41 / 255, blue: 55 / 255)
+    static var tokenInk: Color { TokenStepThemeRuntime.theme.inkColor }
     static var tokenCanvas: Color { TokenStepThemeRuntime.palette.canvas.color }
     static var tokenSurface: Color { TokenStepThemeRuntime.palette.surface.color }
     static var tokenGreen: Color { TokenStepThemeRuntime.palette.accent.color }
     static var tokenGreenDark: Color { TokenStepThemeRuntime.palette.accentDark.color }
+    static var tokenToggleTint: Color {
+        TokenStepThemeRuntime.isVoyage ? tokenGreenDark : tokenGreen
+    }
     static var tokenMint: Color { TokenStepThemeRuntime.palette.accentSoft.color }
     static var tokenTrack: Color { TokenStepThemeRuntime.palette.track.color }
     static var tokenLowActivity: Color { TokenStepThemeRuntime.palette.lowActivity.color }
+    static var tokenDivider: Color { TokenStepThemeRuntime.theme.dividerColor }
+    static var tokenHairline: Color {
+        TokenStepThemeRuntime.isVoyage
+            ? TokenStepThemeRuntime.palette.accentDark.color.opacity(0.22)
+            : Color.black.opacity(0.055)
+    }
+    static var tokenHairlineStrong: Color {
+        TokenStepThemeRuntime.isVoyage
+            ? TokenStepThemeRuntime.palette.accent.color.opacity(0.48)
+            : Color.black.opacity(0.09)
+    }
+    static var tokenInnerHighlight: Color {
+        TokenStepThemeRuntime.isVoyage
+            ? Color(red: 240 / 255, green: 209 / 255, blue: 156 / 255).opacity(0.08)
+            : Color.white.opacity(0.42)
+    }
+    static var tokenShadow: Color {
+        TokenStepThemeRuntime.isVoyage
+            ? Color.black.opacity(0.34)
+            : Color.black.opacity(0.055)
+    }
+    static var tokenActionText: Color {
+        TokenStepThemeRuntime.isVoyage
+            ? Color(red: 22 / 255, green: 18 / 255, blue: 14 / 255)
+            : Color.white
+    }
+    static var tokenMutedFill: Color {
+        TokenStepThemeRuntime.isVoyage
+            ? TokenStepThemeRuntime.palette.track.color.opacity(0.52)
+            : TokenStepThemeRuntime.palette.track.color.opacity(0.42)
+    }
+    static var tokenWarning: Color {
+        TokenStepThemeRuntime.isVoyage
+            ? Color(red: 218 / 255, green: 139 / 255, blue: 67 / 255)
+            : Color.orange
+    }
+    static let tokenSuccess = Color(red: 79 / 255, green: 167 / 255, blue: 123 / 255)
 }
 
 extension ToolUsage {

@@ -6,7 +6,7 @@ struct UpdateWindowView: View {
 
     var body: some View {
         ZStack {
-            TokenStepBackdrop()
+            TokenStepBackdrop(role: .update)
 
             VStack(alignment: .leading, spacing: 22) {
                 header
@@ -18,6 +18,12 @@ struct UpdateWindowView: View {
             .padding(28)
         }
         .frame(width: 560, height: 500)
+        .overlay {
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageWindowFrame(inset: 8)
+            }
+        }
+        .environment(\.colorScheme, appState.settings.theme.colorScheme)
         .id(appState.appearanceID)
     }
 
@@ -90,7 +96,7 @@ struct UpdateWindowView: View {
         }
         .padding(13)
         .background(Color.tokenSurface.opacity(0.86), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.black.opacity(0.055)))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.tokenHairline))
     }
 
     @ViewBuilder

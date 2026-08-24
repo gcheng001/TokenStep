@@ -1,19 +1,27 @@
 import SwiftUI
 
 struct PopoverTokenRankCard: View {
+    enum Layout {
+        case card
+        case ribbon
+    }
+
     @EnvironmentObject private var appState: AppState
+    @Environment(\.isScreenshotRendering) private var isScreenshotRendering
     @State private var userRankFrame: CGRect = .zero
+    var layout: Layout = .card
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            header
-            userRankContent
-            metaContent
+        Group {
+            switch layout {
+            case .card:
+                cardContent
+            case .ribbon:
+                ribbonContent
+            }
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .coordinateSpace(name: "tokenRankCard")
-        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: layout == .ribbon ? 16 : 24, style: .continuous))
         .onPreferenceChange(TokenRankUserRowFrameKey.self) { frame in
             userRankFrame = frame
         }
@@ -31,7 +39,142 @@ struct PopoverTokenRankCard: View {
                 }
         )
         .onAppear {
-            appState.refreshTokenRank()
+            if !isScreenshotRendering {
+                appState.refreshTokenRank()
+            }
+        }
+    }
+
+    private var cardContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            header
+            userRankContent
+            metaContent
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var ribbonContent: some View {
+        HStack(spacing: 14) {
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(Color.tokenGreen)
+                    .frame(width: 8, height: 8)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(L("Agent 消耗榜"))
+                        .font(.callout.weight(.heavy))
+                        .foregroundStyle(Color.tokenInk)
+                    if appState.isRefreshingTokenRank {
+                        Text(L("同步中"))
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    } else if let fetchedAt = appState.tokenRank?.fetchedAt {
+                        Text(headerStatus(fetchedAt))
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .frame(width: 150, alignment: .leading)
+
+            ribbonDivider
+
+            HStack(spacing: 10) {
+                Image(systemName: mainSymbol)
+                    .font(.system(size: 18, weight: .heavy))
+                    .foregroundStyle(mainTint)
+                    .frame(width: 36, height: 36)
+                    .background(mainTint.opacity(0.16), in: Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    if let entry = currentUserEntry {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text("#\(entry.rank)")
+                                .font(.system(size: 25, weight: .heavy, design: .rounded))
+                                .foregroundStyle(Color.tokenInk)
+                                .monospacedDigit()
+                            Text(entry.name)
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                        }
+                        if let rankContext {
+                            Text(rankContext)
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(mainTint)
+                                .lineLimit(1)
+                        }
+                    } else {
+                        Text(mainTitle)
+                            .font(.callout.weight(.heavy))
+                            .foregroundStyle(Color.tokenInk)
+                        Text(mainSubtitle)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: TokenRankUserRowFrameKey.self,
+                        value: proxy.frame(in: .named("tokenRankCard"))
+                    )
+                }
+            )
+
+            ribbonDivider
+            ribbonMetric(
+                label: L("全榜今日消耗"),
+                value: totalRankTokensText,
+                detail: appState.tokenRank.map { LFormat("%d 人参榜", $0.totalRankedUsers) }
+            )
+            .frame(width: 154, alignment: .leading)
+
+            ribbonDivider
+            ribbonMetric(
+                label: L("我的今日"),
+                value: currentUserEntry.map { TokenStepFormat.tokens($0.totalTokens, compact: true) } ?? L("等待同步"),
+                detail: currentUserEntry.map { LFormat("主力 %@", primaryClientName($0)) }
+            )
+            .frame(width: 130, alignment: .leading)
+
+            Image(systemName: "arrow.up.right")
+                .font(.system(size: 13, weight: .heavy))
+                .foregroundStyle(Color.tokenInk.opacity(0.48))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .help(appState.agentWorkRankIdentity == nil ? L("打开榜单页") : L("打开个人页"))
+    }
+
+    private var ribbonDivider: some View {
+        Rectangle()
+            .fill(Color.tokenDivider.opacity(0.74))
+            .frame(width: 1, height: 38)
+    }
+
+    private func ribbonMetric(label: String, value: String, detail: String?) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                .foregroundStyle(Color.tokenInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.70)
+                .monospacedDigit()
+            if let detail {
+                Text(detail)
+                    .font(.system(size: 9.5, weight: .bold))
+                    .foregroundStyle(Color.tokenInk.opacity(0.54))
+                    .lineLimit(1)
+            }
         }
     }
 
@@ -130,20 +273,26 @@ struct PopoverTokenRankCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L("全榜今日消耗"))
                         .font(.system(size: 10.5, weight: .heavy))
-                        .foregroundStyle(Color.white.opacity(0.62))
+                        .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.62) : Color.white.opacity(0.62))
                     Text(totalRankTokensText)
                         .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white)
                         .monospacedDigit()
                     if let count = appState.tokenRank?.totalRankedUsers, count > 0 {
                         Text(LFormat("%d 人参榜", count))
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(Color.white.opacity(0.62))
+                            .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.62) : Color.white.opacity(0.62))
                     }
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(red: 0.12, green: 0.18, blue: 0.14), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .background(
+                    TokenStepThemeRuntime.isVoyage
+                        ? Color.tokenGreen.opacity(0.11)
+                        : Color(red: 0.12, green: 0.18, blue: 0.14),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.tokenHairline))
 
                 if let entry = currentUserEntry {
                     TokenRankMetaPill(label: L("我的今日"), value: TokenStepFormat.tokens(entry.totalTokens, compact: true))

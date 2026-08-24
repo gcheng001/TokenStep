@@ -15,6 +15,11 @@ struct ShareRhythmCardView: View {
         ZStack {
             RhythmCardBackdrop(palette: palette)
 
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageBackdropAtmosphere(role: .share)
+                    .opacity(0.72)
+            }
+
             VStack(spacing: 14) {
                 header
                 hero
@@ -27,25 +32,22 @@ struct ShareRhythmCardView: View {
             .padding(.horizontal, 30)
             .padding(.vertical, 26)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageWindowFrame(inset: 8)
+            }
         }
         .frame(width: 600, height: 840)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
         .fixedSize()
+        .environment(\.colorScheme, appState.settings.theme.colorScheme)
+        .id(appState.appearanceID)
     }
 
     private var header: some View {
         HStack(alignment: .top, spacing: 13) {
-            TokenStepMark(size: 50)
+            TokenStepBrandLockup(markSize: 50, titleSize: 22)
                 .shadow(color: palette.accent.opacity(0.22), radius: 12, x: 0, y: 0)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text("TokenStep")
-                    .font(.system(size: 23, weight: .black, design: .rounded))
-                    .foregroundStyle(.white)
-                Text(L("AI Token 使用追踪"))
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(Color.white.opacity(0.55))
-            }
 
             Spacer()
 
@@ -55,7 +57,7 @@ struct ShareRhythmCardView: View {
                     .foregroundStyle(palette.accent)
                 Text(weekdayText)
                     .font(.callout.weight(.bold))
-                    .foregroundStyle(Color.white.opacity(0.56))
+                    .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.56) : Color.white.opacity(0.56))
             }
         }
     }
@@ -64,7 +66,7 @@ struct ShareRhythmCardView: View {
         VStack(spacing: 8) {
             Text(L("昨日 AI 节奏"))
                 .font(.system(size: 31, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white)
                 .lineLimit(1)
 
             HStack(alignment: .center, spacing: 12) {
@@ -90,7 +92,7 @@ struct ShareRhythmCardView: View {
 
             Text(rhythm.primaryTag.shareLine)
                 .font(.callout.weight(.bold))
-                .foregroundStyle(Color.white.opacity(0.66))
+                .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.66) : Color.white.opacity(0.66))
                 .lineLimit(1)
                 .minimumScaleFactor(0.76)
         }
@@ -106,12 +108,12 @@ struct ShareRhythmCardView: View {
                 .background(palette.accent.opacity(0.12), in: Circle())
             Text(LFormat("峰值 %@", peakWindowText))
                 .font(.headline.weight(.black))
-                .foregroundStyle(.white)
+                .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white)
                 .lineLimit(1)
             Spacer()
             Text(LFormat("峰值 %@", TokenStepFormat.tokens(rhythm.peakTokens, compact: true)))
                 .font(.callout.weight(.heavy))
-                .foregroundStyle(Color.white.opacity(0.72))
+                .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.72) : Color.white.opacity(0.72))
                 .lineLimit(1)
         }
         .padding(.horizontal, 18)
@@ -135,11 +137,15 @@ struct ShareRhythmCardView: View {
             VStack(spacing: 3) {
                 Text(L("昨日 Token"))
                     .font(.headline.weight(.black))
-                    .foregroundStyle(Color.white.opacity(0.70))
+                    .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.70) : Color.white.opacity(0.70))
                 Text(TokenStepFormat.tokens(day.totalTokens, compact: true))
                     .font(.system(size: 49, weight: .black, design: .rounded))
                     .foregroundStyle(
-                        LinearGradient(colors: [palette.accent, Color.white], startPoint: .top, endPoint: .bottom)
+                        LinearGradient(
+                            colors: [palette.accent, TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
                     )
                     .minimumScaleFactor(0.62)
                     .lineLimit(1)
@@ -179,7 +185,7 @@ struct ShareRhythmCardView: View {
             Text(L("不上传对话"))
         }
         .font(.caption.weight(.heavy))
-        .foregroundStyle(Color.white.opacity(0.54))
+        .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.54) : Color.white.opacity(0.54))
         .frame(maxWidth: .infinity)
         .frame(height: 38)
         .background(Color.black.opacity(0.20), in: Capsule())
@@ -308,7 +314,7 @@ private struct RhythmAxisLabel: View {
         VStack(spacing: 4) {
             Text(AgentWorkCopy.hourLabel(hour))
                 .font(.caption.weight(.heavy))
-                .foregroundStyle(Color.white.opacity(0.48))
+                .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.48) : Color.white.opacity(0.48))
             if let symbol {
                 Image(systemName: symbol)
                     .font(.system(size: 16, weight: .bold))
@@ -338,7 +344,7 @@ private struct RhythmBottomMetric: View {
 
             Text(value)
                 .font(.system(size: 24, weight: .black, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white)
                 .minimumScaleFactor(0.68)
                 .lineLimit(1)
         }
@@ -386,7 +392,7 @@ private struct RhythmPeakMarker: View {
                 .stroke(color.opacity(0.36), style: StrokeStyle(lineWidth: 1.5, dash: [5, 7]))
 
                 Circle()
-                    .fill(Color.white)
+                    .fill(TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white)
                     .frame(width: 11, height: 11)
                     .overlay(Circle().stroke(color, lineWidth: 3))
                     .shadow(color: color.opacity(0.8), radius: 14, x: 0, y: 0)
@@ -558,7 +564,7 @@ private struct RhythmCardBackdrop: View {
                 .rotationEffect(.degrees(-23))
                 .offset(x: 250, y: -48)
             RhythmGridShape(columns: 11, rows: 14)
-                .stroke(Color.white.opacity(0.026), lineWidth: 1)
+                .stroke(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.026) : Color.white.opacity(0.026), lineWidth: 1)
         }
     }
 }
@@ -571,6 +577,19 @@ private struct RhythmCardPalette {
     var panel: Color
 
     static func palette(for rhythm: DailyRhythm) -> RhythmCardPalette {
+        if TokenStepThemeRuntime.isVoyage {
+            return RhythmCardPalette(
+                background: [
+                    Color(red: 9 / 255, green: 10 / 255, blue: 9 / 255),
+                    Color(red: 20 / 255, green: 19 / 255, blue: 16 / 255),
+                    Color(red: 35 / 255, green: 26 / 255, blue: 19 / 255)
+                ],
+                accent: TokenStepThemeRuntime.palette.accentDark.color,
+                secondary: TokenStepThemeRuntime.palette.ring3.color,
+                night: TokenStepThemeRuntime.palette.activity2.color,
+                panel: Color(red: 28 / 255, green: 27 / 255, blue: 23 / 255)
+            )
+        }
         switch rhythm.primaryTag {
         case .nightAgent:
             return RhythmCardPalette(

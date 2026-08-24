@@ -8,14 +8,15 @@ struct PopoverAgentWorkTable: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let voyage = TokenStepThemeRuntime.isVoyage
+        return VStack(alignment: .leading, spacing: voyage ? 13 : 10) {
             HStack {
                 Text(L("Agent 用量"))
-                    .font(.caption.weight(.heavy))
+                    .font((voyage ? Font.callout : Font.caption).weight(.heavy))
                     .foregroundStyle(Color.tokenInk)
                 Spacer()
                 Text(LFormat("%d 个来源", rows.count))
-                    .font(.caption2.weight(.bold))
+                    .font((voyage ? Font.caption : Font.caption2).weight(.bold))
                     .foregroundStyle(.secondary)
             }
 
@@ -32,12 +33,12 @@ struct PopoverAgentWorkTable: View {
                     }
                 }
                 Text(L("Cursor 官方用量，计入圆环"))
-                    .font(.system(size: 10, weight: .semibold))
+                    .font(.system(size: voyage ? 10.5 : 10, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .padding(.top, 8)
+                    .padding(.top, voyage ? 10 : 8)
             }
         }
-        .padding(14)
+        .padding(voyage ? 18 : 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .contentShape(Rectangle())
         .onTapGesture {
@@ -46,17 +47,19 @@ struct PopoverAgentWorkTable: View {
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
+        let voyage = TokenStepThemeRuntime.isVoyage
+        return HStack(spacing: 10) {
             Text(L("来源")).frame(maxWidth: .infinity, alignment: .leading)
-            Text(L("Token")).frame(width: 72, alignment: .trailing)
+            Text(L("Token")).frame(width: voyage ? 88 : 72, alignment: .trailing)
         }
-        .font(.system(size: 10.5, weight: .semibold))
+        .font(.system(size: voyage ? 11.5 : 10.5, weight: .semibold))
         .foregroundStyle(.secondary)
         .padding(.bottom, 6)
     }
 
     private func rowView(_ row: AgentWorkSource) -> some View {
-        HStack(alignment: .center, spacing: 10) {
+        let voyage = TokenStepThemeRuntime.isVoyage
+        return HStack(alignment: .center, spacing: 10) {
             HStack(alignment: .center, spacing: 6) {
                 Circle()
                     .fill(tokenToolColor(row.source))
@@ -68,14 +71,14 @@ struct PopoverAgentWorkTable: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(TokenStepFormat.tokens(row.tokens, compact: true))
-                .frame(width: 72, alignment: .trailing)
+                .frame(width: voyage ? 88 : 72, alignment: .trailing)
                 .monospacedDigit()
         }
-        .font(.system(size: 12, weight: .semibold))
+        .font(.system(size: voyage ? 13.5 : 12, weight: .semibold))
         .foregroundStyle(Color.tokenInk.opacity(0.82))
-        .padding(.vertical, 7)
+        .padding(.vertical, voyage ? 10 : 7)
         .overlay(alignment: .top) {
-            Rectangle().fill(Color.black.opacity(0.05)).frame(height: 1)
+            Rectangle().fill(Color.tokenDivider).frame(height: 1)
         }
     }
 

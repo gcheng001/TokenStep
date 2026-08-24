@@ -8,15 +8,31 @@ struct PopoverPanelView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            columns
+            if TokenStepThemeRuntime.isVoyage {
+                odysseyContent
+            } else {
+                classicColumns
+            }
             notices
             PopoverFooterView()
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
-                .padding(.bottom, 14)
+                .padding(.horizontal, TokenStepThemeRuntime.isVoyage ? 22 : 16)
+                .padding(.top, TokenStepThemeRuntime.isVoyage ? 14 : 12)
+                .padding(.bottom, TokenStepThemeRuntime.isVoyage ? 20 : 14)
         }
         .frame(width: 900)
-        .background(TokenStepBackdrop())
+        .background {
+            if TokenStepThemeRuntime.isVoyage {
+                OdysseyPopoverBackdrop()
+            } else {
+                TokenStepBackdrop(role: .popover)
+            }
+        }
+        .overlay {
+            if TokenStepThemeRuntime.isVoyage {
+                OdysseyPopoverWindowFrame(inset: 7)
+            }
+        }
+        .environment(\.colorScheme, appState.settings.theme.colorScheme)
         .id(appState.appearanceID)
         .onAppear {
             if !isScreenshotRendering {
@@ -27,14 +43,14 @@ struct PopoverPanelView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            TokenStepMark(size: 28)
-            Text("TokenStep")
-                .font(.system(size: 17, weight: .heavy, design: .rounded))
-                .foregroundStyle(Color.tokenInk)
+            TokenStepBrandLockup(
+                markSize: TokenStepThemeRuntime.isVoyage ? 34 : 28,
+                titleSize: TokenStepThemeRuntime.isVoyage ? 20 : 17
+            )
             Spacer()
             HStack(spacing: 6) {
                 Circle()
-                    .fill(appState.isRefreshing ? Color.secondary.opacity(0.68) : Color.tokenGreen)
+                    .fill(appState.isRefreshing ? Color.secondary.opacity(0.68) : Color.tokenSuccess)
                     .frame(width: 7, height: 7)
                 Text(appState.isRefreshing ? L("同步中") : L("已同步"))
                     .font(.caption.weight(.heavy))
@@ -43,7 +59,7 @@ struct PopoverPanelView: View {
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
             .background(Color.tokenSurface, in: Capsule())
-            .overlay(Capsule().stroke(Color.black.opacity(0.055)))
+            .overlay(Capsule().stroke(Color.tokenDivider))
 
             if !isScreenshotRendering {
                 PopoverCaptureMenuButton(
@@ -57,11 +73,63 @@ struct PopoverPanelView: View {
                 )
             }
         }
-        .padding(.horizontal, 16)
-        .frame(height: 48)
+        .padding(.horizontal, TokenStepThemeRuntime.isVoyage ? 26 : 16)
+        .frame(height: TokenStepThemeRuntime.isVoyage ? 72 : 48)
+        .background {
+            if TokenStepThemeRuntime.isVoyage {
+                LinearGradient(
+                    colors: [Color.black.opacity(0.30), Color.tokenCanvas.opacity(0.12), Color.black.opacity(0.16)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if TokenStepThemeRuntime.isVoyage {
+                LinearGradient(
+                    colors: [Color.tokenGreen.opacity(0.58), Color.tokenDivider.opacity(0.34), Color.clear],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(height: 1)
+                .padding(.horizontal, 22)
+            }
+        }
     }
 
-    private var columns: some View {
+    private var odysseyContent: some View {
+        VStack(spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                PopoverTodayRingCard()
+                    .frame(width: 250, height: 320)
+                    .background(OdysseyPopoverSectionBackground(opacity: 0.16))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                PopoverAgentWorkTable()
+                    .frame(minWidth: 330, maxWidth: .infinity, minHeight: 320, maxHeight: 320)
+                    .background(OdysseyPopoverSectionBackground(opacity: 0.46))
+                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                if appState.showsQuotaColumn {
+                    PopoverQuotaCard()
+                        .frame(width: 260, height: 320)
+                        .background(OdysseyPopoverSectionBackground(opacity: 0.54))
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                }
+            }
+
+            if appState.shouldShowAgentWorkRank, appState.agentWorkRankIdentity != nil {
+                PopoverTokenRankCard(layout: .ribbon)
+                    .frame(height: 76)
+                    .background(OdysseyPopoverSectionBackground(opacity: 0.58, cornerRadius: 16))
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+    }
+
+    private var classicColumns: some View {
         HStack(alignment: .top, spacing: 0) {
             PopoverTodayRingCard()
                 .frame(width: 188)
@@ -82,7 +150,7 @@ struct PopoverPanelView: View {
         .frame(minHeight: columnsMinHeight)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.black.opacity(0.06))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }
@@ -96,9 +164,8 @@ struct PopoverPanelView: View {
     }
 
     private var columnDivider: some View {
-        Rectangle()
-            .fill(Color.black.opacity(0.06))
-            .frame(width: 1)
+        Rectangle().fill(Color.tokenDivider)
+        .frame(width: 1)
     }
 
     @ViewBuilder
@@ -322,7 +389,7 @@ private struct PopoverCaptureMenuButton: View {
                 .foregroundStyle(Color.tokenInk.opacity(0.76))
                 .frame(width: 30, height: 30)
                 .background(Color.tokenSurface, in: Circle())
-                .overlay(Circle().stroke(Color.black.opacity(0.07)))
+                .overlay(Circle().stroke(Color.tokenHairline))
                 .contentShape(Circle())
         }
         .menuStyle(.button)
@@ -361,7 +428,7 @@ private struct UpdateNoticeCard: View {
             } label: {
                 Text(L("立即更新"))
                     .font(.caption.weight(.heavy))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Color.tokenActionText)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 8)
                     .background(Color.tokenGreen, in: Capsule())
@@ -382,6 +449,6 @@ private struct UpdateNoticeCard: View {
         }
         .padding(13)
         .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.tokenGreen.opacity(0.14)))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.tokenHairlineStrong))
     }
 }

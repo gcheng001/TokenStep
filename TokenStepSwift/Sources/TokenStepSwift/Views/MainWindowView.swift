@@ -53,6 +53,14 @@ enum AppSection: String, CaseIterable, Identifiable {
         default: L("保存当前页 PNG")
         }
     }
+
+    var odysseySurfaceRole: OdysseySurfaceRole {
+        switch self {
+        case .today: return .dashboard
+        case .history: return .history
+        case .privacy: return .privacy
+        }
+    }
 }
 
 struct MainWindowView: View {
@@ -64,12 +72,18 @@ struct MainWindowView: View {
             chrome
                 .id(appState.appearanceID)
             Rectangle()
-                .fill(Color.black.opacity(0.06))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
             content
                 .id(appState.appearanceID)
         }
-        .background(TokenStepBackdrop().id(appState.appearanceID))
+        .background(TokenStepBackdrop(role: navigation.section.odysseySurfaceRole).id(appState.appearanceID))
+        .overlay {
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageWindowFrame(inset: 8)
+            }
+        }
+        .environment(\.colorScheme, appState.settings.theme.colorScheme)
         .onAppear {
             appState.refreshForForeground()
         }
@@ -77,12 +91,7 @@ struct MainWindowView: View {
 
     private var chrome: some View {
         HStack(spacing: 12) {
-            HStack(spacing: 8) {
-                TokenStepMark(size: 22)
-                Text("TokenStep")
-                    .font(.system(size: 14, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color.tokenInk)
-            }
+            TokenStepBrandLockup(markSize: 22, titleSize: 14)
 
             Spacer(minLength: 8)
 
@@ -106,7 +115,7 @@ struct MainWindowView: View {
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(appState.isRefreshing ? Color.secondary.opacity(0.7) : Color.tokenGreen)
+                        .fill(appState.isRefreshing ? Color.secondary.opacity(0.7) : Color.tokenSuccess)
                         .frame(width: 7, height: 7)
                     Text(appState.isRefreshing ? L("同步中") : L("已同步"))
                         .font(.caption.weight(.heavy))
@@ -114,7 +123,7 @@ struct MainWindowView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .background(Color.tokenSurface, in: Capsule())
-                .overlay(Capsule().stroke(Color.black.opacity(0.06)))
+                .overlay(Capsule().stroke(Color.tokenDivider))
 
                 Button {
                     appState.refresh()
@@ -149,7 +158,18 @@ struct MainWindowView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(Color.tokenSurface.opacity(0.94))
+        .background {
+            ZStack {
+                Color.tokenSurface.opacity(0.94)
+                if TokenStepThemeRuntime.isVoyage {
+                    LinearGradient(
+                        colors: [Color.tokenGreen.opacity(0.085), Color.clear, Color.tokenGreenDark.opacity(0.03)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                }
+            }
+        }
     }
 
     private var content: some View {
@@ -225,10 +245,16 @@ private struct DashboardTabButton: View {
                 .padding(.horizontal, 14)
                 .frame(height: 28)
                 .background(
-                    selected ? Color.tokenSurface : Color.clear,
+                    selected
+                        ? (TokenStepThemeRuntime.isVoyage ? Color.tokenGreen.opacity(0.16) : Color.tokenSurface)
+                        : Color.clear,
                     in: RoundedRectangle(cornerRadius: 7, style: .continuous)
                 )
-                .shadow(color: selected ? Color.black.opacity(0.07) : .clear, radius: 3, y: 1)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 7, style: .continuous)
+                        .stroke(selected && TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color.clear)
+                )
+                .shadow(color: selected ? Color.tokenShadow : .clear, radius: 3, y: 1)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(selected ? [.isSelected] : [])

@@ -4,10 +4,11 @@ struct PopoverQuotaCard: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let voyage = TokenStepThemeRuntime.isVoyage
+        return VStack(alignment: .leading, spacing: voyage ? 12 : 10) {
             HStack(spacing: 8) {
                 Text(L("订阅额度"))
-                    .font(.caption.weight(.heavy))
+                    .font((voyage ? Font.callout : Font.caption).weight(.heavy))
                     .foregroundStyle(Color.tokenInk)
                 Spacer()
                 if appState.isRefreshingCodexQuota {
@@ -16,7 +17,7 @@ struct PopoverQuotaCard: View {
                         .scaleEffect(0.72)
                 } else if let fetchedAt = latestFetchedAt {
                     Text(quotaFetchedText(fetchedAt))
-                        .font(.caption2.weight(.bold))
+                        .font((voyage ? Font.caption : Font.caption2).weight(.bold))
                         .foregroundStyle(.secondary)
                 }
             }
@@ -32,7 +33,7 @@ struct PopoverQuotaCard: View {
                     }
                 }
             } else {
-                VStack(spacing: 8) {
+                VStack(spacing: voyage ? 6 : 8) {
                     ForEach(visible) { quota in
                         quotaChip(quota)
                     }
@@ -56,9 +57,10 @@ struct PopoverQuotaCard: View {
     }
 
     private func quotaChip(_ quota: ProviderQuota) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        let voyage = TokenStepThemeRuntime.isVoyage
+        return VStack(alignment: .leading, spacing: voyage ? 4 : 6) {
             Text(quota.provider.displayName)
-                .font(.caption2.weight(.heavy))
+                .font((voyage ? Font.system(size: 11.5) : Font.caption2).weight(.heavy))
                 .foregroundStyle(Color.tokenInk.opacity(0.76))
             if quota.isAvailable {
                 ForEach(quota.windows.prefix(2)) { window in
@@ -71,32 +73,33 @@ struct PopoverQuotaCard: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(8)
+        .padding(voyage ? 6 : 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.black.opacity(0.05)))
+        .background(Color.tokenSurface.opacity(voyage ? 0.84 : 1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.tokenHairline))
     }
 
     private func quotaRow(_ window: QuotaWindow) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        let voyage = TokenStepThemeRuntime.isVoyage
+        return VStack(alignment: .leading, spacing: voyage ? 3 : 4) {
             HStack {
                 Text(window.kind.shortTitle)
-                    .font(.system(size: 10.5, weight: .heavy))
+                    .font(.system(size: voyage ? 10.5 : 10.5, weight: .heavy))
                     .foregroundStyle(Color.tokenInk.opacity(0.62))
                 Spacer()
                 Text(LFormat("剩余 %@", TokenStepFormat.percent(window.remainingPercent)))
-                    .font(.system(size: 10.5, weight: .heavy))
-                    .foregroundStyle(window.isLow ? Color.orange : Color.tokenInk.opacity(0.82))
+                    .font(.system(size: voyage ? 10.5 : 10.5, weight: .heavy))
+                    .foregroundStyle(window.isLow ? Color.tokenWarning : Color.tokenInk.opacity(0.82))
             }
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.tokenGreen.opacity(0.10))
+                    Capsule().fill(Color.tokenTrack.opacity(0.82))
                     Capsule()
-                        .fill(window.isLow ? Color.orange : Color.tokenGreen)
+                        .fill(window.isLow ? Color.tokenWarning : Color.tokenGreen)
                         .frame(width: max(5, proxy.size.width * window.remainingPercent / 100))
                 }
             }
-            .frame(height: 5)
+            .frame(height: voyage ? 4 : 5)
         }
     }
 

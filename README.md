@@ -22,7 +22,7 @@ TokenStep 是一个 macOS 菜单栏 App，用来本地统计你在 Codex、Claud
 
 下载最新版 DMG，打开后把 `TokenStep.app` 拖进「应用程序」即可使用：
 
-[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.2.dmg)
+[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.4.dmg)
 
 也可以从 Release 页面查看所有版本：
 
@@ -57,7 +57,7 @@ TokenStep 适合这些人：
 - 每日目标可设置，默认每天一个亿。
 - 打开面板时按设置的新鲜度刷新；后台在接电时最低 15 分钟、电池或低电量模式下最低 30 分钟刷新，并跳过未变化的数据。
 - 开机启动，可在设置里关闭。
-- 多种主题色，菜单栏、圆环、活动墙和按钮会一起变化。
+- 主题皮肤包：可随时切回五种经典配色，也可使用奥德赛的导演剪辑、爱琴海冷雾、特洛伊火海与灰烬神像四个视觉篇章。
 - 一键截图分享当前页面。
 - 一键生成「昨日 AI 节奏」分享卡，展示 24 小时使用波形、峰值时段和节奏标签。
 - Codex / Claude Code 剩余额度可在设置中打开，默认关闭。
@@ -149,7 +149,7 @@ TokenStepSwift/dist/TokenStep.app
 Developer ID 签名：
 
 ```bash
-TOKENSTEP_VERSION=0.2.2 \
+TOKENSTEP_VERSION=0.2.4 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 ./script/package_release.sh
 ```
@@ -157,7 +157,7 @@ CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 签名 + Apple 公证：
 
 ```bash
-TOKENSTEP_VERSION=0.2.2 \
+TOKENSTEP_VERSION=0.2.4 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 TOKENSTEP_NOTARY_PROFILE="tokenstep-notary" \
 ./script/package_release.sh --notarize
@@ -171,6 +171,8 @@ release/TokenStep-<version>.dmg
 ```
 
 维护者说明见 [docs/RELEASE.md](docs/RELEASE.md)。
+
+0.2.4 主题包实现与验收说明见 [docs/ODYSSEY_THEME_PACK_0.2.4.md](docs/ODYSSEY_THEME_PACK_0.2.4.md)。
 
 ## 开源协议
 

@@ -3,6 +3,66 @@ import XCTest
 @testable import TokenStepSwift
 
 final class SettingsMigrationTests: XCTestCase {
+    func testVersion023DefaultsToVoyageTheme() {
+        XCTAssertEqual(TokenStepSettings.defaults.theme, .voyage)
+    }
+
+    func testVersion024DefaultsToOdysseyDirectorsCutAndRemembersClassicGreen() {
+        let settings = TokenStepSettings.defaults
+        XCTAssertEqual(settings.themePack, .odyssey)
+        XCTAssertEqual(settings.odysseyChapter, .directorsCut)
+        XCTAssertEqual(settings.classicTheme, .green)
+    }
+
+    func testVersion023VoyageSettingsDecodeIntoVersion024ThemePack() throws {
+        let json = """
+        {"theme": "voyage"}
+        """.data(using: .utf8)!
+
+        let settings = try JSONDecoder().decode(TokenStepSettings.self, from: json)
+
+        XCTAssertEqual(settings.themePack, .odyssey)
+        XCTAssertEqual(settings.odysseyChapter, .directorsCut)
+        XCTAssertEqual(settings.classicTheme, .green)
+    }
+
+    func testLegacyClassicThemeBecomesRememberedClassicPalette() throws {
+        let json = """
+        {"theme": "ocean"}
+        """.data(using: .utf8)!
+
+        let settings = try JSONDecoder().decode(TokenStepSettings.self, from: json)
+
+        XCTAssertEqual(settings.themePack, .classic)
+        XCTAssertEqual(settings.classicTheme, .ocean)
+    }
+
+    func testVersion023MigratesSavedLegacyThemeToVoyageOnce() {
+        var settings = TokenStepSettings.defaults
+        settings.theme = .green
+        settings.dailyGoalTokens = 321_000_000
+
+        let migrated = DataService.applyingVoyageThemeMigration(
+            settings,
+            markerExists: false
+        )
+
+        XCTAssertEqual(migrated.theme, .voyage)
+        XCTAssertEqual(migrated.dailyGoalTokens, 321_000_000)
+    }
+
+    func testVersion023MigrationMarkerPreservesLaterThemeChoice() {
+        var settings = TokenStepSettings.defaults
+        settings.theme = .green
+
+        let migrated = DataService.applyingVoyageThemeMigration(
+            settings,
+            markerExists: true
+        )
+
+        XCTAssertEqual(migrated.theme, .green)
+    }
+
     func testLegacyShowCodexQuotaTrueMigratesToCodexAndClaude() throws {
         let json = """
         {"show_codex_quota": true}
@@ -29,6 +89,9 @@ final class SettingsMigrationTests: XCTestCase {
         settings.cursorQuotaEnabled = true
         settings.cursorCodeSignalEnabled = true
         settings.historyDays = 90
+        settings.theme = .voyage
+        settings.classicTheme = .amber
+        settings.odysseyChapter = .ashMarble
         let data = try JSONEncoder().encode(settings)
         let decoded = try JSONDecoder().decode(TokenStepSettings.self, from: data)
         XCTAssertEqual(decoded.enabledQuotaProviders, [.codex, .cursor, .glm])
@@ -36,6 +99,9 @@ final class SettingsMigrationTests: XCTestCase {
         XCTAssertTrue(decoded.cursorCodeSignalEnabled)
         XCTAssertEqual(decoded.historyDays, 90)
         XCTAssertTrue(decoded.showCodexQuota)
+        XCTAssertEqual(decoded.themePack, .odyssey)
+        XCTAssertEqual(decoded.classicTheme, .amber)
+        XCTAssertEqual(decoded.odysseyChapter, .ashMarble)
     }
 
     func testCursorFlagStaysInSyncWithProviderSet() {

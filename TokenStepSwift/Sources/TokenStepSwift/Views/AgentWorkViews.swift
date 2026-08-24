@@ -88,14 +88,18 @@ struct TodayAgentWorkCard: View {
                 value: "\(selectedActiveHours)/\(period.maximumHours)",
                 detail: AgentWorkCopy.recordedHourDetail,
                 symbol: "clock.fill",
-                color: Color(red: 0.20, green: 0.52, blue: 0.92)
+                color: TokenStepThemeRuntime.isVoyage
+                    ? TokenStepThemeRuntime.palette.activity2.color
+                    : Color(red: 0.20, green: 0.52, blue: 0.92)
             )
             AgentWorkMetricTile(
                 title: L("近 7 日均"),
                 value: TokenStepFormat.tokens(selectedSevenDayAverage, compact: true),
                 detail: AgentWorkCopy.calendarDayAverage,
                 symbol: "calendar.badge.clock",
-                color: Color(red: 0.50, green: 0.28, blue: 0.92)
+                color: TokenStepThemeRuntime.isVoyage
+                    ? TokenStepThemeRuntime.palette.activity3.color
+                    : Color(red: 0.50, green: 0.28, blue: 0.92)
             )
             AgentWorkMetricTile(
                 title: AgentWorkCopy.cacheHitRate,
@@ -291,7 +295,7 @@ struct PopoverAgentWorkStrip: View {
             .padding(.horizontal, 13)
             .frame(height: 40)
             .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(Color.black.opacity(0.055)))
+            .overlay(RoundedRectangle(cornerRadius: 15, style: .continuous).stroke(Color.tokenHairline))
             .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -344,7 +348,7 @@ private struct AgentWorkMetricTile: View {
         .background(Color.tokenTrack.opacity(0.24), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 15, style: .continuous)
-                .stroke(Color.black.opacity(0.025))
+                .stroke(Color.tokenDivider.opacity(0.55))
         )
     }
 }
@@ -431,7 +435,7 @@ private struct AgentWorkActivityChart: View {
         .background(Color.tokenSurface.opacity(0.64), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.black.opacity(0.055))
+                .stroke(Color.tokenHairline)
         )
         .animation(.easeOut(duration: 0.24), value: hours.map(\.tokens))
     }
@@ -501,7 +505,7 @@ private struct AgentWorkActivityChart: View {
                             TokenStepFormat.tokens(unbucketedTokens, compact: true)
                         )
                 )
-                    .foregroundStyle(Color.orange)
+                    .foregroundStyle(Color.tokenWarning)
                     .help(AgentWorkCopy.unbucketedHelp)
             }
         }
@@ -773,7 +777,7 @@ private struct AgentWorkFilterButton: View {
             )
             .overlay(
                 Capsule()
-                    .stroke(selected ? Color.clear : Color.black.opacity(0.045))
+                    .stroke(selected ? Color.tokenHairlineStrong : Color.tokenHairline)
             )
         }
         .buttonStyle(.plain)
@@ -874,9 +878,9 @@ private enum AgentWorkSourceFilter: String, CaseIterable, Identifiable {
     var tint: Color {
         switch self {
         case .all: return Color.tokenInk
-        case .codex: return AgentSourceRegistry.color(for: "Codex")
-        case .hermes: return AgentSourceRegistry.color(for: "Hermes Agent")
-        case .other: return AgentSourceRegistry.color(for: "ZCode")
+        case .codex: return tokenToolColor("Codex")
+        case .hermes: return tokenToolColor("Hermes Agent")
+        case .other: return tokenToolColor("ZCode")
         }
     }
 

@@ -32,6 +32,14 @@ struct HistoryView: View {
                     )
                 }
             }
+            .overlay(alignment: .topTrailing) {
+                if TokenStepThemeRuntime.isVoyage {
+                    VoyageRouteWatermark()
+                        .frame(width: 260, height: 116)
+                        .padding(18)
+                        .opacity(0.46)
+                }
+            }
 
             StatsView()
 
@@ -124,7 +132,7 @@ private struct HistoryRow: View {
         .padding(.vertical, 12)
         .background(alignment: .bottom) {
             Rectangle()
-                .fill(Color.black.opacity(0.055))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }

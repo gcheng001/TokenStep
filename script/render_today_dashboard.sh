@@ -25,7 +25,12 @@ swiftc -D TOKENSTEP_TESTING -target arm64-apple-macos14.0 -vfsoverlay "$OVERLAY_
 
 for scenario in zh-normal zh-empty zh-waiting-details en-normal zh-narrow zh-long-large; do
   test_root="$(mktemp -d "${TMPDIR:-/tmp}/tokenstep-today-${scenario}.XXXXXX")"
-  TOKENSTEP_TEST_APP_SUPPORT_ROOT="$test_root/app-support" TOKENSTEP_TODAY_SCENARIO="$scenario" TOKENSTEP_TODAY_RENDER_PATH="$OUTPUT_DIR/$scenario.png" "$EXECUTABLE"
+  TOKENSTEP_TEST_APP_SUPPORT_ROOT="$test_root/app-support" TOKENSTEP_ICON_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/TokenStepIcon.icns" TOKENSTEP_TODAY_SCENARIO="$scenario" TOKENSTEP_TODAY_RENDER_PATH="$OUTPUT_DIR/$scenario.png" "$EXECUTABLE"
   test -s "$OUTPUT_DIR/$scenario.png"
   rm -rf "$test_root"
 done
+
+test_root="$(mktemp -d "${TMPDIR:-/tmp}/tokenstep-today-voyage.XXXXXX")"
+TOKENSTEP_TEST_APP_SUPPORT_ROOT="$test_root/app-support" TOKENSTEP_ICON_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/TokenStepIcon.icns" TOKENSTEP_TODAY_SCENARIO="zh-normal" TOKENSTEP_TODAY_THEME="voyage" TOKENSTEP_TODAY_RENDER_PATH="$OUTPUT_DIR/voyage.png" "$EXECUTABLE"
+test -s "$OUTPUT_DIR/voyage.png"
+rm -rf "$test_root"

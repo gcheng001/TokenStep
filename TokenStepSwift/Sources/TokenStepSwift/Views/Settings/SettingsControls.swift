@@ -21,11 +21,11 @@ struct DisplayPlacementButton: View {
                 Text(title)
                     .font(.caption.weight(.heavy))
             }
-            .foregroundStyle(selected ? Color.white : Color.tokenInk.opacity(0.72))
+            .foregroundStyle(selected ? Color.tokenActionText : Color.tokenInk.opacity(0.72))
             .frame(maxWidth: .infinity)
             .frame(height: 38)
             .background(selected ? Color.tokenGreen : Color.tokenTrack.opacity(0.42), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(selected ? Color.clear : Color.black.opacity(0.04)))
+            .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(selected ? Color.tokenHairlineStrong : Color.tokenHairline))
         }
         .buttonStyle(.plain)
     }
@@ -35,6 +35,15 @@ enum SettingsBadgeStyle {
     case ok, warn, off, l1, l2, l3
 
     var foreground: Color {
+        if TokenStepThemeRuntime.isVoyage {
+            switch self {
+            case .ok, .l1: return Color.tokenSuccess
+            case .warn: return Color.tokenWarning
+            case .off: return Color.secondary
+            case .l2: return Color.tokenGreen
+            case .l3: return Color.tokenGreenDark
+            }
+        }
         switch self {
         case .ok, .l1: return Color(red: 0.11, green: 0.36, blue: 0.23)
         case .warn: return Color(red: 0.56, green: 0.29, blue: 0.09)
@@ -45,6 +54,15 @@ enum SettingsBadgeStyle {
     }
 
     var background: Color {
+        if TokenStepThemeRuntime.isVoyage {
+            switch self {
+            case .ok, .l1: return Color.tokenSuccess.opacity(0.12)
+            case .warn: return Color.tokenWarning.opacity(0.12)
+            case .off: return Color.tokenMutedFill
+            case .l2: return Color.tokenGreen.opacity(0.12)
+            case .l3: return Color.tokenGreenDark.opacity(0.12)
+            }
+        }
         switch self {
         case .ok, .l1: return Color(red: 0.90, green: 0.95, blue: 0.89)
         case .warn: return Color(red: 0.97, green: 0.93, blue: 0.87)
@@ -55,6 +73,15 @@ enum SettingsBadgeStyle {
     }
 
     var border: Color {
+        if TokenStepThemeRuntime.isVoyage {
+            switch self {
+            case .ok, .l1: return Color.tokenSuccess.opacity(0.30)
+            case .warn: return Color.tokenWarning.opacity(0.34)
+            case .off: return Color.tokenHairline
+            case .l2: return Color.tokenGreen.opacity(0.34)
+            case .l3: return Color.tokenGreenDark.opacity(0.38)
+            }
+        }
         switch self {
         case .ok, .l1: return Color(red: 0.76, green: 0.86, blue: 0.78)
         case .warn: return Color(red: 0.90, green: 0.80, blue: 0.71)
@@ -136,6 +163,9 @@ struct SettingsSectionCard<Content: View>: View {
     }
 
     private var sectionBackground: Color {
+        if TokenStepThemeRuntime.isVoyage {
+            return Color.tokenSurface
+        }
         switch tint ?? badgeStyle {
         case .l2: return Color(red: 0.97, green: 0.98, blue: 0.99)
         case .l3: return Color(red: 0.98, green: 0.97, blue: 0.99)
@@ -144,6 +174,13 @@ struct SettingsSectionCard<Content: View>: View {
     }
 
     private var sectionBorder: Color {
+        if TokenStepThemeRuntime.isVoyage {
+            switch tint ?? badgeStyle {
+            case .l2: return Color.tokenGreen.opacity(0.30)
+            case .l3: return Color.tokenGreenDark.opacity(0.34)
+            default: return Color.tokenHairline
+            }
+        }
         switch tint ?? badgeStyle {
         case .l2: return Color(red: 0.81, green: 0.84, blue: 0.92)
         case .l3: return Color(red: 0.87, green: 0.84, blue: 0.91)
@@ -161,7 +198,7 @@ struct SettingsPickerChip: View {
         Button(action: action) {
             Text(title)
                 .font(.caption.weight(.heavy))
-                .foregroundStyle(selected ? Color(red: 0.93, green: 0.97, blue: 0.85) : Color.tokenInk.opacity(0.68))
+                .foregroundStyle(selected ? Color.tokenActionText : Color.tokenInk.opacity(0.68))
                 .padding(.horizontal, 10)
                 .frame(height: 28)
                 .background(
@@ -170,7 +207,7 @@ struct SettingsPickerChip: View {
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .stroke(selected ? Color.tokenGreenDark : Color.black.opacity(0.06))
+                        .stroke(selected ? Color.tokenHairlineStrong : Color.tokenHairline)
                 )
         }
         .buttonStyle(.plain)
@@ -217,9 +254,29 @@ struct SettingsCard<Content: View>: View {
         .padding(.bottom, 22)
         .frame(height: height)
         .frame(maxWidth: .infinity)
-        .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.black.opacity(0.06)))
-        .shadow(color: Color.black.opacity(0.055), radius: 22, x: 0, y: 14)
+        .background {
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.tokenSurface)
+                if TokenStepThemeRuntime.isVoyage {
+                    LinearGradient(
+                        colors: [Color.tokenGreen.opacity(0.05), Color.clear, Color.tokenGreenDark.opacity(0.025)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                }
+            }
+        }
+        .overlay {
+            ZStack {
+                RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.tokenHairline)
+                if TokenStepThemeRuntime.isVoyage {
+                    VoyageCardOrnament(cornerRadius: 24)
+                }
+            }
+        }
+        .shadow(color: Color.tokenShadow, radius: 22, x: 0, y: 14)
     }
 }
 
@@ -234,7 +291,7 @@ struct GoalStepButton: View {
                 .foregroundStyle(Color.tokenInk.opacity(0.78))
                 .frame(width: 34, height: 30)
                 .background(Color.tokenTrack.opacity(0.55), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.black.opacity(0.05)))
+                .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.tokenHairline))
         }
         .buttonStyle(.plain)
     }
@@ -249,25 +306,30 @@ struct ThemeSwatchButton: View {
         Button(action: action) {
             VStack(spacing: 7) {
                 ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    theme.palette.accentSoft.color,
-                                    theme.palette.accent.color,
-                                    theme.palette.accentDark.color
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                    if theme == .voyage {
+                        TokenStepMark(size: 38)
+                            .shadow(color: theme.palette.accentDark.color.opacity(selected ? 0.24 : 0.12), radius: 8, x: 0, y: 4)
+                    } else {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        theme.palette.accentSoft.color,
+                                        theme.palette.accent.color,
+                                        theme.palette.accentDark.color
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 38, height: 38)
-                        .shadow(color: theme.palette.accentDark.color.opacity(selected ? 0.22 : 0.10), radius: 8, x: 0, y: 4)
+                            .frame(width: 38, height: 38)
+                            .shadow(color: theme.palette.accentDark.color.opacity(selected ? 0.22 : 0.10), radius: 8, x: 0, y: 4)
+                    }
 
-                    if selected {
+                    if selected && theme != .voyage {
                         Image(systemName: "checkmark")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(theme == .voyage ? Color.tokenActionText : Color.white)
                     }
                 }
 
@@ -285,12 +347,169 @@ struct ThemeSwatchButton: View {
                 .background(selected ? theme.palette.accentSoft.color.opacity(0.22) : Color.tokenTrack.opacity(0.24), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(selected ? theme.palette.accent.color.opacity(0.46) : Color.black.opacity(0.045), lineWidth: selected ? 1.4 : 1)
+                    .stroke(selected ? theme.palette.accent.color.opacity(0.46) : Color.tokenHairline, lineWidth: selected ? 1.4 : 1)
             )
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
         .help(LFormat("切换到%@主题", theme.title))
+    }
+}
+
+struct ThemePackOptionButton: View {
+    var pack: TokenStepThemePack
+    var selected: Bool
+    var classicTheme: TokenStepTheme
+    var odysseyChapter: TokenStepOdysseyChapter
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 13) {
+                preview
+                    .frame(width: 58, height: 48)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 6) {
+                        Text(pack.title)
+                            .font(.system(size: 14, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Color.tokenInk)
+                        if selected {
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 12, weight: .heavy))
+                                .foregroundStyle(Color.tokenGreen)
+                        }
+                    }
+                    Text(pack.subtitle)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 4)
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity)
+            .frame(height: 72)
+            .background(
+                selected ? Color.tokenGreen.opacity(0.11) : Color.tokenTrack.opacity(0.22),
+                in: RoundedRectangle(cornerRadius: 15, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .stroke(selected ? Color.tokenGreen.opacity(0.68) : Color.tokenHairline, lineWidth: selected ? 1.5 : 1)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 15, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .help(LFormat("切换到%@主题包", pack.title))
+    }
+
+    @ViewBuilder
+    private var preview: some View {
+        switch pack {
+        case .classic:
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(classicTheme.palette.surface.color)
+                .overlay {
+                    HStack(alignment: .bottom, spacing: 3) {
+                        ForEach(Array([0.42, 0.62, 0.82, 1.0].enumerated()), id: \.offset) { index, scale in
+                            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                                .fill(classicTheme.palette.activityColor(for: index + 1))
+                                .frame(width: 6, height: 24 * scale)
+                        }
+                    }
+                }
+                .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(Color.black.opacity(0.08)))
+        case .odyssey:
+            RoundedRectangle(cornerRadius: 13, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [odysseyChapter.palette.surface.color, odysseyChapter.palette.canvas.color],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay {
+                    ZStack {
+                        Image(systemName: odysseyChapter.symbol)
+                            .font(.system(size: 22, weight: .black))
+                            .foregroundStyle(odysseyChapter.palette.accent.color.opacity(0.88))
+                        Image(systemName: "arrow.up.right")
+                            .font(.system(size: 8, weight: .black))
+                            .foregroundStyle(odysseyChapter.palette.accentDark.color)
+                            .offset(x: 16, y: -13)
+                    }
+                }
+                .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(odysseyChapter.palette.accent.color.opacity(0.46)))
+        }
+    }
+}
+
+struct OdysseyChapterButton: View {
+    var chapter: TokenStepOdysseyChapter
+    var selected: Bool
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 9, style: .continuous)
+                            .fill(chapter.palette.accentSoft.color.opacity(0.58))
+                        Image(systemName: chapter.symbol)
+                            .font(.system(size: 14, weight: .black))
+                            .foregroundStyle(chapter.palette.accentDark.color)
+                    }
+                    .frame(width: 34, height: 30)
+
+                    Spacer(minLength: 4)
+
+                    if selected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 13, weight: .heavy))
+                            .foregroundStyle(chapter.palette.accentDark.color)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(chapter.title)
+                        .font(.caption.weight(.heavy))
+                        .foregroundStyle(Color.tokenInk)
+                        .lineLimit(1)
+                    Text(chapter.subtitle)
+                        .font(.system(size: 9.5, weight: .bold))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 82)
+            .background(
+                LinearGradient(
+                    colors: [
+                        chapter.palette.surface.color.opacity(selected ? 0.96 : 0.55),
+                        chapter.palette.canvas.color.opacity(selected ? 0.88 : 0.46)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(
+                        selected ? chapter.palette.accent.color.opacity(0.78) : Color.tokenHairline,
+                        lineWidth: selected ? 1.5 : 1
+                    )
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .help(LFormat("切换到%@篇章", chapter.title))
     }
 }
 
@@ -324,7 +543,7 @@ struct LanguageOptionButton: View {
             .frame(height: 40)
             .padding(.horizontal, 10)
             .background(selected ? Color.tokenMint.opacity(0.24) : Color.tokenTrack.opacity(0.28), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(selected ? Color.tokenGreen.opacity(0.32) : Color.black.opacity(0.04)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(selected ? Color.tokenGreen.opacity(0.32) : Color.tokenHairline))
             .contentShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         }
         .buttonStyle(.plain)
@@ -340,13 +559,13 @@ struct PresetChip: View {
         Button(action: action) {
             Text(title)
                 .font(.caption.weight(.heavy))
-                .foregroundStyle(selected ? Color.white : Color.tokenInk.opacity(0.72))
+                .foregroundStyle(selected ? Color.tokenActionText : Color.tokenInk.opacity(0.72))
                 .lineLimit(1)
                 .minimumScaleFactor(0.78)
                 .frame(maxWidth: .infinity)
                 .frame(height: 33)
                 .background(selected ? Color.tokenGreen : Color.tokenTrack.opacity(0.45), in: Capsule())
-                .overlay(Capsule().stroke(selected ? Color.clear : Color.black.opacity(0.045)))
+                .overlay(Capsule().stroke(selected ? Color.tokenHairlineStrong : Color.tokenHairline))
         }
         .buttonStyle(.plain)
     }
@@ -367,13 +586,44 @@ struct RefreshOptionButton: View {
                 Text(title)
                     .font(.callout.weight(.heavy))
             }
-            .foregroundStyle(selected ? Color.white : Color.tokenInk.opacity(0.7))
+            .foregroundStyle(selected ? Color.tokenActionText : Color.tokenInk.opacity(0.7))
             .frame(maxWidth: .infinity)
             .frame(height: 42)
             .background(selected ? Color.tokenGreen : Color.tokenTrack.opacity(0.42), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(selected ? Color.clear : Color.black.opacity(0.035)))
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(selected ? Color.tokenHairlineStrong : Color.tokenHairline))
         }
         .buttonStyle(.plain)
+    }
+}
+
+struct TokenStepSwitchToggleStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            withAnimation(.easeOut(duration: 0.16)) {
+                configuration.isOn.toggle()
+            }
+        } label: {
+            ZStack(alignment: configuration.isOn ? .trailing : .leading) {
+                Capsule()
+                    .fill(
+                        configuration.isOn
+                            ? Color.tokenToggleTint
+                            : Color.tokenTrack.opacity(TokenStepThemeRuntime.isVoyage ? 0.82 : 0.72)
+                    )
+                Circle()
+                    .fill(configuration.isOn ? Color.tokenInk : Color.tokenInk.opacity(0.62))
+                    .padding(2)
+                    .shadow(color: Color.black.opacity(0.24), radius: 2, x: 0, y: 1)
+            }
+            .frame(width: 36, height: 20)
+            .overlay(
+                Capsule()
+                    .stroke(configuration.isOn ? Color.tokenGreenDark.opacity(0.74) : Color.tokenHairline)
+            )
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityValue(configuration.isOn ? L("已开启") : L("已关闭"))
     }
 }
 
@@ -392,8 +642,7 @@ struct SettingsToggleRow: View {
             Spacer()
             Toggle("", isOn: $isOn)
                 .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.small)
+                .toggleStyle(TokenStepSwitchToggleStyle())
         }
     }
 }
@@ -450,7 +699,7 @@ struct PrivacyCheckRow: View {
         HStack(spacing: 9) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.system(size: 13, weight: .heavy))
-                .foregroundStyle(Color.tokenGreen)
+                .foregroundStyle(Color.tokenSuccess)
             Text(title)
                 .font(.callout.weight(.bold))
                 .foregroundStyle(Color.tokenInk.opacity(0.78))
@@ -477,7 +726,7 @@ struct PrivacyMetaChip: View {
 struct SettingsPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.tokenActionText)
             .background(Color.tokenGreen, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .opacity(configuration.isPressed ? 0.82 : 1)
     }
@@ -488,7 +737,7 @@ struct SettingsSecondaryButtonStyle: ButtonStyle {
         configuration.label
             .foregroundStyle(Color.tokenInk.opacity(0.72))
             .background(Color.tokenTrack.opacity(0.62), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.black.opacity(0.045)))
+            .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.tokenHairline))
             .opacity(configuration.isPressed ? 0.76 : 1)
     }
 }

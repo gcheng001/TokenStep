@@ -6,25 +6,27 @@ struct DashboardScreenshotView: View {
 
     var body: some View {
         ZStack {
-            TokenStepBackdrop()
+            TokenStepBackdrop(role: section.odysseySurfaceRole)
 
             VStack(alignment: .leading, spacing: 16) {
                 captureHeader
                 detailView
             }
             .padding(20)
+
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageWindowFrame(inset: 8)
+            }
         }
         .frame(width: 1000)
         .fixedSize(horizontal: false, vertical: true)
+        .environment(\.colorScheme, appState.settings.theme.colorScheme)
         .id(appState.appearanceID)
     }
 
     private var captureHeader: some View {
         HStack(spacing: 12) {
-            TokenStepMark(size: 22)
-            Text("TokenStep")
-                .font(.system(size: 14, weight: .heavy, design: .rounded))
-                .foregroundStyle(Color.tokenInk)
+            TokenStepBrandLockup(markSize: 22, titleSize: 14)
             Spacer()
             HStack(spacing: 3) {
                 ForEach(AppSection.allCases) { item in

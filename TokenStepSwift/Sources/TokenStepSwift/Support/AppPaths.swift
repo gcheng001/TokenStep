@@ -24,6 +24,8 @@ enum AppPaths {
     static let kimiQuotaCacheJSON = appSupportRoot.appendingPathComponent("cache/kimi-quota-cache.json")
     static let grokQuotaCacheJSON = appSupportRoot.appendingPathComponent("cache/grok-quota-cache.json")
     static let settingsJSON = appSupportRoot.appendingPathComponent("config/settings.json")
+    static let voyageThemeMigrationMarker = appSupportRoot.appendingPathComponent("config/voyage-theme-v0.2.3-applied")
+    static let odysseyThemePackMigrationMarker = appSupportRoot.appendingPathComponent("config/odyssey-theme-pack-v0.2.4-applied")
     static let autostartDefaultMarker = appSupportRoot.appendingPathComponent("config/autostart-default-applied")
     static let usageRecalibrationNoticeMarker = appSupportRoot.appendingPathComponent("config/usage-recalibration-v6-pending")
     static let updates = appSupportRoot.appendingPathComponent("updates", isDirectory: true)

@@ -8,7 +8,11 @@ struct TodayHeroCard: View {
         TokenCard {
             HStack(alignment: .center, spacing: 20) {
                 ZStack {
-                    ProgressRingView(progress: lap.currentLapProgress, lineWidth: 16, color: lap.ringColor)
+                    if TokenStepThemeRuntime.isVoyage {
+                        VoyageBowProgressView(progress: lap.currentLapProgress, lineWidth: 16, color: lap.ringColor)
+                    } else {
+                        ProgressRingView(progress: lap.currentLapProgress, lineWidth: 16, color: lap.ringColor)
+                    }
                     VStack(spacing: 4) {
                         Text(TokenStepFormat.tokens(appState.today.totalTokens))
                             .font(.system(size: 22, weight: .heavy, design: .rounded))
@@ -41,6 +45,7 @@ struct TodayHeroCard: View {
 
                 Spacer(minLength: 0)
             }
+            .frame(minHeight: 166)
         }
     }
 
@@ -80,6 +85,14 @@ struct TodayAgentIntensityCard: View {
                     TodayKVRow(label: L("缓存读取"), value: TokenStepFormat.tokens(work.cachedInputTokens, compact: true))
                     TodayKVRow(label: L("输出"), value: TokenStepFormat.tokens(work.outputTokens, compact: true))
                 }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if TokenStepThemeRuntime.isVoyage {
+                OdysseySurfaceEmblem(role: .dashboard)
+                    .frame(width: 94, height: 76)
+                    .padding(14)
+                    .opacity(0.54)
             }
         }
     }
@@ -151,6 +164,14 @@ struct TodayHourlyCard: View {
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                 }
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if TokenStepThemeRuntime.isVoyage {
+                VoyageRouteWatermark()
+                    .frame(width: 180, height: 86)
+                    .padding(12)
+                    .opacity(0.46)
             }
         }
     }
@@ -456,7 +477,7 @@ private struct TodayMetricChip: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
         .background(Color.tokenTrack.opacity(0.42), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color.black.opacity(0.04)))
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).stroke(Color.tokenHairline))
     }
 }
 
@@ -498,7 +519,7 @@ private struct TodayKVRow: View {
         .padding(.vertical, 7)
         .overlay(alignment: .top) {
             Rectangle()
-                .fill(Color.black.opacity(0.05))
+                .fill(Color.tokenDivider)
                 .frame(height: 1)
         }
     }

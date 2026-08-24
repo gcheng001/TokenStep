@@ -838,6 +838,8 @@ struct TokenStepSettings: Codable {
     var refreshIntervalSeconds: Int
     var historyDays: Int
     var theme: TokenStepTheme
+    var classicTheme: TokenStepTheme
+    var odysseyChapter: TokenStepOdysseyChapter
     var autoUpdateEnabled: Bool
     var askBeforeDownloadingUpdates: Bool
     var requireVerifiedUpdates: Bool
@@ -855,11 +857,24 @@ struct TokenStepSettings: Codable {
         !enabledQuotaProviders.isEmpty
     }
 
+    var themePack: TokenStepThemePack {
+        theme == .voyage ? .odyssey : .classic
+    }
+
+    var activeThemeTitle: String {
+        switch themePack {
+        case .classic: return classicTheme.title
+        case .odyssey: return odysseyChapter.title
+        }
+    }
+
     enum CodingKeys: String, CodingKey {
         case dailyGoalTokens = "daily_goal_tokens"
         case refreshIntervalSeconds = "refresh_interval_seconds"
         case historyDays = "history_days"
         case theme
+        case classicTheme = "classic_theme"
+        case odysseyChapter = "odyssey_chapter"
         case autoUpdateEnabled = "auto_update_enabled"
         case askBeforeDownloadingUpdates = "ask_before_downloading_updates"
         case requireVerifiedUpdates = "require_verified_updates"
@@ -880,7 +895,7 @@ struct TokenStepSettings: Codable {
         dailyGoalTokens: 100_000_000,
         refreshIntervalSeconds: 300,
         historyDays: 180,
-        theme: .green,
+        theme: .voyage,
         autoUpdateEnabled: true,
         askBeforeDownloadingUpdates: true,
         requireVerifiedUpdates: true,
@@ -892,7 +907,9 @@ struct TokenStepSettings: Codable {
         agentWorkRankVisibility: .automatic,
         showExperimentalAgentSources: false,
         language: .system,
-        skippedUpdateVersion: nil
+        skippedUpdateVersion: nil,
+        classicTheme: .green,
+        odysseyChapter: .directorsCut
     )
 
     init(
@@ -912,12 +929,20 @@ struct TokenStepSettings: Codable {
         showExperimentalAgentSources: Bool,
         language: TokenStepLanguage,
         skippedUpdateVersion: String?,
+        classicTheme: TokenStepTheme? = nil,
+        odysseyChapter: TokenStepOdysseyChapter = .directorsCut,
         showCodexQuota: Bool? = nil
     ) {
         self.dailyGoalTokens = dailyGoalTokens
         self.refreshIntervalSeconds = refreshIntervalSeconds
         self.historyDays = historyDays
         self.theme = theme
+        let fallbackClassicTheme = theme == .voyage ? TokenStepTheme.green : theme
+        let requestedClassicTheme = classicTheme ?? fallbackClassicTheme
+        self.classicTheme = TokenStepTheme.classicCases.contains(requestedClassicTheme)
+            ? requestedClassicTheme
+            : .green
+        self.odysseyChapter = odysseyChapter
         self.autoUpdateEnabled = autoUpdateEnabled
         self.askBeforeDownloadingUpdates = askBeforeDownloadingUpdates
         self.requireVerifiedUpdates = requireVerifiedUpdates
@@ -953,6 +978,17 @@ struct TokenStepSettings: Codable {
         historyDays = try container.decodeIfPresent(Int.self, forKey: .historyDays) ?? defaults.historyDays
         let themeID = try container.decodeIfPresent(String.self, forKey: .theme)
         theme = themeID.flatMap(TokenStepTheme.init(rawValue:)) ?? defaults.theme
+        let classicThemeID = try container.decodeIfPresent(String.self, forKey: .classicTheme)
+        let decodedClassicTheme = classicThemeID.flatMap(TokenStepTheme.init(rawValue:))
+        if let decodedClassicTheme, TokenStepTheme.classicCases.contains(decodedClassicTheme) {
+            classicTheme = decodedClassicTheme
+        } else if TokenStepTheme.classicCases.contains(theme) {
+            classicTheme = theme
+        } else {
+            classicTheme = defaults.classicTheme
+        }
+        odysseyChapter = try container.decodeIfPresent(TokenStepOdysseyChapter.self, forKey: .odysseyChapter)
+            ?? defaults.odysseyChapter
         autoUpdateEnabled = try container.decodeIfPresent(Bool.self, forKey: .autoUpdateEnabled) ?? defaults.autoUpdateEnabled
         askBeforeDownloadingUpdates = try container.decodeIfPresent(Bool.self, forKey: .askBeforeDownloadingUpdates) ?? defaults.askBeforeDownloadingUpdates
         requireVerifiedUpdates = try container.decodeIfPresent(Bool.self, forKey: .requireVerifiedUpdates) ?? defaults.requireVerifiedUpdates
@@ -999,6 +1035,8 @@ struct TokenStepSettings: Codable {
         try container.encode(refreshIntervalSeconds, forKey: .refreshIntervalSeconds)
         try container.encode(historyDays, forKey: .historyDays)
         try container.encode(theme, forKey: .theme)
+        try container.encode(classicTheme, forKey: .classicTheme)
+        try container.encode(odysseyChapter, forKey: .odysseyChapter)
         try container.encode(autoUpdateEnabled, forKey: .autoUpdateEnabled)
         try container.encode(askBeforeDownloadingUpdates, forKey: .askBeforeDownloadingUpdates)
         try container.encode(requireVerifiedUpdates, forKey: .requireVerifiedUpdates)

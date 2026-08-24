@@ -32,6 +32,37 @@ TokenStep 已使用 Developer ID 签名并通过 Apple 公证。首次打开时�
 
 Windows版本由十七做了移植，欢迎大家前往使用：https://github.com/canyexuanfan/TokenStep-Windows/releases 
 
+## 0.2.4 重大更新：奥德赛主题包
+
+TokenStep 第一次从“更换配色”升级为完整的**主题皮肤包系统**。你可以继续使用熟悉的经典界面，也可以切换到更有电影质感的奥德赛主题；数据、统计口径与本地优先原则保持不变。
+
+<p align="center">
+  <img src="docs/images/tokenstep-0.2.4-odyssey-theme-pack.jpg" alt="TokenStep 0.2.4 奥德赛主题包四个视觉篇章" width="900" />
+</p>
+
+### 两套皮肤包，随时切换
+
+- **经典**：保留青绿、海蓝、紫藤、琥珀和石墨五种原版配色。
+- **奥德赛**：新增导演剪辑、爱琴海冷雾、特洛伊火海和灰烬神像四个视觉篇章。
+- TokenStep 会分别记住你上次使用的经典配色和奥德赛篇章，来回切换不用重新设置。
+
+| 视觉篇章 | 核心元素 |
+| --- | --- |
+| 导演剪辑 | 根据不同界面自动组合冷雾头盔、特洛伊木马与灰烬神像 |
+| 爱琴海冷雾 | 深海、冷雾、青铜头盔与竖向骨节冠 |
+| 特洛伊火海 | 焦黑木马、火焰背光、烟尘与余烬 |
+| 灰烬神像 | 破损大理石战士、裂纹、玄武岩与希腊回纹 |
+
+### 不只是换一张背景图
+
+- 菜单栏浮层重构为“今日用量 / Agent 用量 / 订阅额度”三段式电影构图。
+- Agent 消耗榜收为底部横向信息带，不再形成第五列或把浮层横向撑宽。
+- Today、历史、隐私、设置、更新窗口、分享卡与 Token Island 全面换肤。
+- 新增奥德赛弓箭阶梯 Logo；用量采用骨金、冷金或余烬橙，绿色只保留给同步成功等状态反馈。
+- 关闭排行榜后浮层会自动收短，多来源额度则使用紧凑布局完整展示。
+
+打开 `设置 → 通用 → 主题皮肤包` 即可切换。完整说明见 [0.2.4 发布说明](docs/RELEASE_NOTES_0.2.4.md)，或直接[下载已签名并通过 Apple 公证的最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.4.dmg)。
+
 ## TokenStep 适合谁？
 
 TokenStep 适合这些人：
@@ -89,7 +120,7 @@ TokenStep 默认只做本地统计。
 
 ## 安装方式
 
-1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.1.48.dmg)。
+1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.4.dmg)。
 2. 打开 DMG。
 3. 把 `TokenStep.app` 拖到「应用程序」。
 4. 启动 TokenStep。

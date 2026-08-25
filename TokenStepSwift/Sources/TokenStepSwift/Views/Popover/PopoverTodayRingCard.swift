@@ -51,10 +51,6 @@ struct PopoverTodayRingCard: View {
                 Text(TokenStepFormat.money(appState.today.cost))
                     .font((voyage ? Font.caption : Font.caption2).weight(.bold))
                     .foregroundStyle(.secondary)
-                Text(L("圈数进度，颜色不按来源分段"))
-                    .font(.system(size: voyage ? 10.5 : 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
             }
         }
         .padding(voyage ? 18 : 14)

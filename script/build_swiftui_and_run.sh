@@ -22,7 +22,7 @@ EXECUTABLE="$BUILD_DIR/$PRODUCT_NAME"
 HELPER_EXECUTABLE="$BUILD_DIR/$HELPER_NAME"
 ICON_FILE="$ROOT_DIR/TokenUsageMenuApp/assets/TokenStepIcon.icns"
 ODYSSEY_ASSET_DIR="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey"
-VERSION="${TOKENSTEP_VERSION:-0.2.4}"
+VERSION="${TOKENSTEP_VERSION:-0.2.5}"
 LAUNCH=true
 VERIFY=false
 
@@ -41,10 +41,12 @@ for arg in "$@"; do
   esac
 done
 
-pkill -f "TokenUsageMenu.py" 2>/dev/null || true
-pkill -x "$PRODUCT_NAME" 2>/dev/null || true
-pkill -x "$HELPER_NAME" 2>/dev/null || true
-pkill -x "$APP_NAME" 2>/dev/null || true
+if [[ "$LAUNCH" == true ]]; then
+  pkill -f "TokenUsageMenu.py" 2>/dev/null || true
+  pkill -x "$PRODUCT_NAME" 2>/dev/null || true
+  pkill -x "$HELPER_NAME" 2>/dev/null || true
+  pkill -x "$APP_NAME" 2>/dev/null || true
+fi
 
 mkdir -p "$BUILD_DIR" "$DIST_DIR" "$OVERLAY_DIR"
 python3 "$ROOT_DIR/script/check_localization.py"

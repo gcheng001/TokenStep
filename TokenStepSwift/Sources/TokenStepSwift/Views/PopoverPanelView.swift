@@ -4,6 +4,7 @@ import SwiftUI
 struct PopoverPanelView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.isScreenshotRendering) private var isScreenshotRendering
+    @State private var odysseyMotionSurfaceVisible = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -22,9 +23,18 @@ struct PopoverPanelView: View {
         .frame(width: 900)
         .background {
             if TokenStepThemeRuntime.isVoyage {
-                OdysseyPopoverBackdrop()
+                OdysseyPopoverBackdrop(
+                    isMotionSurfaceActive: odysseyMotionSurfaceVisible,
+                    isScreenshotRendering: isScreenshotRendering
+                )
             } else {
                 TokenStepBackdrop(role: .popover)
+            }
+        }
+        .background {
+            if TokenStepThemeRuntime.isVoyage && !isScreenshotRendering {
+                OdysseySurfaceVisibilityReader(isVisible: $odysseyMotionSurfaceVisible)
+                    .frame(width: 1, height: 1)
             }
         }
         .overlay {
@@ -38,6 +48,9 @@ struct PopoverPanelView: View {
             if !isScreenshotRendering {
                 appState.refreshForForeground()
             }
+        }
+        .onDisappear {
+            odysseyMotionSurfaceVisible = false
         }
     }
 
@@ -101,18 +114,18 @@ struct PopoverPanelView: View {
         VStack(spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 PopoverTodayRingCard()
-                    .frame(width: 250, height: 320)
+                    .frame(width: 250, height: odysseyTopCardHeight)
                     .background(OdysseyPopoverSectionBackground(opacity: 0.16))
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                PopoverAgentWorkTable()
-                    .frame(minWidth: 330, maxWidth: .infinity, minHeight: 320, maxHeight: 320)
+                centralUsageCard
+                    .frame(minWidth: 330, maxWidth: .infinity, minHeight: odysseyTopCardHeight, maxHeight: odysseyTopCardHeight)
                     .background(OdysseyPopoverSectionBackground(opacity: 0.46))
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 if appState.showsQuotaColumn {
                     PopoverQuotaCard()
-                        .frame(width: 260, height: 320)
+                        .frame(width: 260, height: odysseyTopCardHeight)
                         .background(OdysseyPopoverSectionBackground(opacity: 0.54))
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
@@ -134,7 +147,7 @@ struct PopoverPanelView: View {
             PopoverTodayRingCard()
                 .frame(width: 188)
             columnDivider
-            PopoverAgentWorkTable()
+            centralUsageCard
                 .frame(minWidth: 240, maxWidth: .infinity)
             if appState.showsQuotaColumn {
                 columnDivider
@@ -157,6 +170,37 @@ struct PopoverPanelView: View {
 
     private var quotaColumnWidth: CGFloat {
         appState.visibleQuotas.count >= 4 ? 248 : 208
+    }
+
+    private var odysseyTopCardHeight: CGFloat { 288 }
+
+    private var showsModelUsageSection: Bool {
+        switch PopoverModelUsageRows.state(from: appState.today) {
+        case .hidden: return false
+        case .waiting, .rows: return true
+        }
+    }
+
+    private var centralUsageCard: some View {
+        let voyage = TokenStepThemeRuntime.isVoyage
+        return VStack(spacing: 0) {
+            PopoverAgentWorkTable()
+                .frame(height: voyage ? (showsModelUsageSection ? 128 : odysseyTopCardHeight) : nil)
+
+            if showsModelUsageSection {
+                Rectangle()
+                    .fill(Color.tokenDivider)
+                    .frame(height: 1)
+                    .padding(.horizontal, voyage ? 14 : 12)
+
+                PopoverModelUsageSection(usage: appState.today)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: voyage ? .infinity : nil, alignment: .top)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            MainWindowPresenter.shared.show(appState: appState, section: .today)
+        }
     }
 
     private var columnsMinHeight: CGFloat {
@@ -396,59 +440,5 @@ private struct PopoverCaptureMenuButton: View {
         .buttonStyle(.plain)
         .help(L("截图与分享"))
         .accessibilityLabel(L("截图与分享"))
-    }
-}
-
-private struct UpdateNoticeCard: View {
-    @EnvironmentObject private var appState: AppState
-    var update: AvailableUpdate
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 13) {
-            Image(systemName: "arrow.down.circle.fill")
-                .font(.system(size: 24, weight: .heavy))
-                .foregroundStyle(Color.tokenGreen)
-                .frame(width: 38, height: 38)
-                .background(Color.tokenMint.opacity(0.22), in: Circle())
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(LFormat("发现新版本 %@", update.version))
-                    .font(.callout.weight(.heavy))
-                    .foregroundStyle(Color.tokenInk)
-                Text(update.noteLines.first ?? L("内存占用优化与稳定性改进"))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer()
-
-            Button {
-                appState.showUpdateDetails()
-            } label: {
-                Text(L("立即更新"))
-                    .font(.caption.weight(.heavy))
-                    .foregroundStyle(Color.tokenActionText)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.tokenGreen, in: Capsule())
-            }
-            .buttonStyle(.plain)
-
-            Button {
-                appState.postponeUpdateNotice()
-            } label: {
-                Text(L("稍后"))
-                    .font(.caption.weight(.heavy))
-                    .foregroundStyle(Color.tokenInk.opacity(0.64))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(Color.tokenTrack.opacity(0.42), in: Capsule())
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(13)
-        .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.tokenHairlineStrong))
     }
 }

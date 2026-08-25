@@ -21,6 +21,7 @@ final class AppState: ObservableObject {
     @Published private(set) var updateInstallStatus = L("准备更新")
     @Published private(set) var availableUpdate: AvailableUpdate?
     @Published private(set) var lastUpdateCheckAt: Date?
+    @Published private(set) var updateCheckPhase: UpdateCheckPhase = .idle
     @Published private(set) var updateDownloadedURL: URL?
     @Published private(set) var tokenIslandAvailable = TokenIslandDisplayDetector.isAvailable
     @Published private(set) var showsUsageRecalibrationNotice = false
@@ -28,6 +29,11 @@ final class AppState: ObservableObject {
 
     private var timer: Timer?
     private var foregroundTimer: Timer?
+    private var updateCheckTimer: Timer?
+    private var deferredUpdateCheckTask: Task<Void, Never>?
+    private var updatePhaseResetTask: Task<Void, Never>?
+    private var startupUpdateCheckPending = false
+    private var updateCheckGate = UpdateCheckGate()
     private var foregroundRefreshSurfaces = Set<String>()
     private var pendingRefreshAfterCurrent = false
     private var pendingForcedRefresh = false
@@ -47,11 +53,15 @@ final class AppState: ObservableObject {
         refreshCodexQuota()
         refreshTokenRank()
         scheduleDeferredUpdateCheck()
+        configureUpdateCheckTimer()
     }
 
     deinit {
         timer?.invalidate()
         foregroundTimer?.invalidate()
+        updateCheckTimer?.invalidate()
+        deferredUpdateCheckTask?.cancel()
+        updatePhaseResetTask?.cancel()
     }
 
     var today: DailyUsage {
@@ -67,6 +77,10 @@ final class AppState: ObservableObject {
 
     var sevenDayAgentAverage: Int {
         sevenDayAgentAverage(endingAt: DateFormatter.tokenStepDay.string(from: Date()))
+    }
+
+    var lastUpdateCheckAttemptAt: Date? {
+        updateCheckGate.lastAttemptAt
     }
 
     var progress: Double {
@@ -240,6 +254,7 @@ final class AppState: ObservableObject {
         refreshCodexQuota(now: now)
         refreshCursorCodeSignal(now: now)
         refreshTokenRank()
+        performUpdateCheck(trigger: .foreground, now: now)
     }
 
     func setForegroundRefreshSurface(_ identifier: String, visible: Bool) {
@@ -721,7 +736,17 @@ final class AppState: ObservableObject {
         settings.autoUpdateEnabled = enabled
         saveSettingsAndReload()
         if enabled {
-            checkForUpdates(silent: true)
+            startupUpdateCheckPending = false
+            deferredUpdateCheckTask?.cancel()
+            deferredUpdateCheckTask = nil
+            configureUpdateCheckTimer()
+            performUpdateCheck(trigger: .settingsEnabled)
+        } else {
+            startupUpdateCheckPending = false
+            deferredUpdateCheckTask?.cancel()
+            deferredUpdateCheckTask = nil
+            updateCheckTimer?.invalidate()
+            updateCheckTimer = nil
         }
     }
 
@@ -746,27 +771,80 @@ final class AppState: ObservableObject {
     }
 
     func checkForUpdates(silent: Bool = false) {
-        guard !isCheckingForUpdates else { return }
-        guard settings.autoUpdateEnabled || !silent else { return }
+        performUpdateCheck(trigger: silent ? .foreground : .manual)
+    }
+
+    private func performUpdateCheck(
+        trigger: UpdateCheckTrigger,
+        now: Date = Date()
+    ) {
+        guard updateCheckGate.begin(
+            trigger: trigger,
+            autoUpdateEnabled: settings.autoUpdateEnabled,
+            now: now,
+            startupCheckPending: startupUpdateCheckPending
+        ) else {
+            return
+        }
+
         isCheckingForUpdates = true
-        if !silent {
+        updatePhaseResetTask?.cancel()
+        updatePhaseResetTask = nil
+        updateCheckPhase = .checking
+        if trigger.isManual {
             lastError = nil
         }
+        LifecycleLogger.log(
+            "Update check attempt trigger=\(trigger.rawValue) current=\(UpdateService.currentVersion)."
+        )
+
         Task {
             do {
                 let result = try await UpdateService.checkForUpdates()
-                lastUpdateCheckAt = Date()
-                switch result {
-                case .upToDate:
-                    availableUpdate = nil
-                case let .available(update):
-                    availableUpdate = settings.skippedUpdateVersion == update.version ? nil : update
+                let checkedAt = Date()
+                lastUpdateCheckAt = checkedAt
+                let visibleUpdate = UpdateCheckPolicy.visibleUpdate(
+                    from: result,
+                    skippedVersion: settings.skippedUpdateVersion,
+                    trigger: trigger
+                )
+                availableUpdate = visibleUpdate
+
+                if let visibleUpdate {
+                    updateCheckPhase = .available(visibleUpdate, checkedAt: checkedAt)
+                    LifecycleLogger.log(
+                        "Update check success trigger=\(trigger.rawValue) result=available version=\(visibleUpdate.version)."
+                    )
+                    if trigger.isManual {
+                        UpdateWindowPresenter.shared.show(appState: self, update: visibleUpdate)
+                    }
+                } else {
+                    updateCheckPhase = .upToDate(checkedAt: checkedAt)
+                    if case let .available(update) = result,
+                       settings.skippedUpdateVersion == update.version,
+                       !trigger.isManual {
+                        LifecycleLogger.log(
+                            "Update check success trigger=\(trigger.rawValue) result=skipped version=\(update.version)."
+                        )
+                    } else {
+                        LifecycleLogger.log(
+                            "Update check success trigger=\(trigger.rawValue) result=up-to-date."
+                        )
+                    }
+                    scheduleUpdatePhaseReset()
                 }
             } catch {
-                if !silent {
-                    lastError = error.localizedDescription
+                let failedAt = Date()
+                let message = error.localizedDescription
+                updateCheckPhase = .failed(checkedAt: failedAt, message: message)
+                if trigger.isManual {
+                    lastError = message
                 }
+                LifecycleLogger.log(
+                    "Update check failure trigger=\(trigger.rawValue) error=\(message)."
+                )
             }
+            updateCheckGate.finish()
             isCheckingForUpdates = false
         }
     }
@@ -807,6 +885,7 @@ final class AppState: ObservableObject {
 
     func postponeUpdateNotice() {
         availableUpdate = nil
+        updateCheckPhase = .idle
     }
 
 #if TOKENSTEP_TESTING
@@ -815,12 +894,22 @@ final class AppState: ObservableObject {
         settings: TokenStepSettings,
         quotas: [QuotaProviderID: ProviderQuota] = [:],
         tokenRank: TokenRankLeaderboard? = nil,
-        agentWorkRankIdentity: AgentWorkRankIdentity? = nil
+        agentWorkRankIdentity: AgentWorkRankIdentity? = nil,
+        updateCheckPhase: UpdateCheckPhase = .idle,
+        availableUpdate: AvailableUpdate? = nil
     ) {
         timer?.invalidate()
         foregroundTimer?.invalidate()
+        updateCheckTimer?.invalidate()
+        deferredUpdateCheckTask?.cancel()
+        updatePhaseResetTask?.cancel()
         timer = nil
         foregroundTimer = nil
+        updateCheckTimer = nil
+        deferredUpdateCheckTask = nil
+        updatePhaseResetTask = nil
+        startupUpdateCheckPending = false
+        updateCheckGate = UpdateCheckGate()
         TokenStepLocalization.apply(settings.language)
         TokenStepThemeRuntime.apply(
             settings.theme,
@@ -836,7 +925,9 @@ final class AppState: ObservableObject {
         isRefreshingTokenRank = false
         isRefreshing = false
         isRefreshingCodexQuota = false
-        availableUpdate = nil
+        self.availableUpdate = availableUpdate
+        self.updateCheckPhase = updateCheckPhase
+        isCheckingForUpdates = updateCheckPhase == .checking
         lastError = nil
         showsUsageRecalibrationNotice = false
     }
@@ -846,6 +937,8 @@ final class AppState: ObservableObject {
         guard let version = availableUpdate?.version else { return }
         settings.skippedUpdateVersion = version
         availableUpdate = nil
+        updateCheckPhase = .upToDate(checkedAt: lastUpdateCheckAt ?? Date())
+        scheduleUpdatePhaseReset()
         saveSettingsAndReload()
     }
 
@@ -973,16 +1066,52 @@ final class AppState: ObservableObject {
     }
 
     private func scheduleDeferredUpdateCheck() {
+        deferredUpdateCheckTask?.cancel()
+        deferredUpdateCheckTask = nil
+        startupUpdateCheckPending = settings.autoUpdateEnabled
         guard settings.autoUpdateEnabled else { return }
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 30_000_000_000)
-            checkForUpdatesIfNeeded()
+
+        deferredUpdateCheckTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 30_000_000_000)
+            } catch {
+                return
+            }
+            guard let self else { return }
+            self.startupUpdateCheckPending = false
+            self.performUpdateCheck(trigger: .startup)
+            self.deferredUpdateCheckTask = nil
         }
     }
 
-    private func checkForUpdatesIfNeeded() {
+    private func configureUpdateCheckTimer() {
+        updateCheckTimer?.invalidate()
+        updateCheckTimer = nil
         guard settings.autoUpdateEnabled else { return }
-        checkForUpdates(silent: true)
+
+        updateCheckTimer = Timer.scheduledTimer(
+            withTimeInterval: UpdateCheckPolicy.automaticInterval,
+            repeats: true
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.performUpdateCheck(trigger: .timer)
+            }
+        }
+        updateCheckTimer?.tolerance = UpdateCheckPolicy.timerTolerance
+    }
+
+    private func scheduleUpdatePhaseReset() {
+        updatePhaseResetTask?.cancel()
+        updatePhaseResetTask = Task { @MainActor [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 4_000_000_000)
+            } catch {
+                return
+            }
+            guard let self, case .upToDate = self.updateCheckPhase else { return }
+            self.updateCheckPhase = .idle
+            self.updatePhaseResetTask = nil
+        }
     }
 
     private func applyDefaultAutostartIfNeeded() {

@@ -19,15 +19,30 @@ struct PopoverPanelRender {
         let chapter = ProcessInfo.processInfo.environment["TOKENSTEP_ODYSSEY_CHAPTER"]
             .flatMap(TokenStepOdysseyChapter.init(rawValue:))
             ?? .aegeanMist
+        let fixture = ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_FIXTURE"] ?? "standard"
+        let language = ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_LANGUAGE"]
+            .flatMap(TokenStepLanguage.init(rawValue:))
+            ?? .zhHans
         let showsRank = ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_RANK"] != "hidden"
+        let showsQuotas = ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_QUOTAS"] != "hidden"
+        let updateState = ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_UPDATE_STATE"] ?? "idle"
         let rank = fixtureRank()
+        let update = fixtureUpdate()
         let appState = AppState()
         appState.installRenderFixture(
-            snapshot: fixtureSnapshot(),
-            settings: fixtureSettings(theme: theme, chapter: chapter, showsRank: showsRank),
-            quotas: fixtureQuotas(),
+            snapshot: fixtureSnapshot(fixture),
+            settings: fixtureSettings(
+                theme: theme,
+                chapter: chapter,
+                showsRank: showsRank,
+                showsQuotas: showsQuotas,
+                language: language
+            ),
+            quotas: showsQuotas ? fixtureQuotas() : [:],
             tokenRank: showsRank ? rank.leaderboard : nil,
-            agentWorkRankIdentity: showsRank ? rank.identity : nil
+            agentWorkRankIdentity: showsRank ? rank.identity : nil,
+            updateCheckPhase: fixtureUpdatePhase(updateState, update: update),
+            availableUpdate: updateState == "available" ? update : nil
         )
 
         let output = URL(
@@ -60,7 +75,7 @@ struct PopoverPanelRender {
                 NSLocalizedDescriptionKey: "Unexpected render size: \(bitmap.pixelsWide)x\(bitmap.pixelsHigh)"
             ])
         }
-        print("v0.2.4-horizontal: \(bitmap.pixelsWide)x\(bitmap.pixelsHigh) -> \(output.path)")
+        print("v0.2.5-a2: \(bitmap.pixelsWide)x\(bitmap.pixelsHigh) -> \(output.path)")
     }
 
     private static func validateIsolatedAppSupport() throws {
@@ -81,37 +96,112 @@ struct PopoverPanelRender {
         try writeJSON(TokenStepSettings.defaults, to: AppPaths.settingsJSON)
     }
 
-    private static func fixtureSnapshot() -> UsageSnapshot {
+    private static func fixtureSnapshot(_ fixture: String) -> UsageSnapshot {
         let today = DateFormatter.tokenStepDay.string(from: Date())
-        let total = 428_000_000
+        var total = 428_000_000
+        var tools = ["Codex": 320_000_000, "Claude Code": 82_000_000, "Cursor": 26_000_000]
+        var models = ["gpt-5.2-codex": 310_000_000, "claude-opus-4.1": 82_000_000, "gemini-2.5-pro": 36_000_000]
+        var sources = [
+            AgentWorkSource(source: "Codex", tokens: 320_000_000, modelRequestCount: 612, toolCallCount: 228),
+            AgentWorkSource(source: "Claude Code", tokens: 82_000_000, modelRequestCount: 156, toolCallCount: 66),
+            AgentWorkSource(source: "Cursor", tokens: 26_000_000, modelRequestCount: 56, toolCallCount: 18)
+        ]
+        var cost = 23.9
+
+        switch fixture {
+        case "models6", "english":
+            models = [
+                "gpt-5.2-codex": 200_000_000,
+                "claude-opus-4.1": 100_000_000,
+                "gemini-2.5-pro": 60_000_000,
+                "deepseek-v4": 30_000_000,
+                "grok-4": 20_000_000,
+                "unknown": 18_000_000
+            ]
+        case "classic4":
+            total = 120_000_000
+            tools = ["Codex": 93_000_000, "ZCode": 27_000_000]
+            models = [
+                "gpt-5.2-codex": 55_000_000,
+                "claude-opus-4.1": 28_000_000,
+                "gemini-2.5-pro": 19_000_000,
+                "grok-4": 11_000_000,
+                "deepseek-v4": 7_000_000
+            ]
+            sources = [
+                AgentWorkSource(source: "Codex", tokens: 93_000_000, modelRequestCount: 290, toolCallCount: 88),
+                AgentWorkSource(source: "ZCode", tokens: 27_000_000, modelRequestCount: 84, toolCallCount: 19)
+            ]
+            cost = 8.4
+        case "waiting":
+            models = [:]
+        case "zero":
+            total = 0
+            tools = [:]
+            models = [:]
+            sources = []
+            cost = 0
+        case "long":
+            total = 10_000_000_000
+            tools = ["Codex": 7_200_000_000, "Hermes Agent": 1_800_000_000, "Cursor": 999_999_999]
+            models = [
+                "openai-gpt-5.2-codex-ultra-long-context-reasoning-preview": 4_500_000_000,
+                "unknown": 2_500_000_000,
+                "anthropic-claude-opus-4.1-extended-thinking-202608": 1_500_000_000,
+                "grok-4-heavy": 800_000_000,
+                "gemini-2.5-pro-exp-very-long-model-name": 699_999_999
+            ]
+            sources = [
+                AgentWorkSource(source: "Codex with an unusually long source name", tokens: 7_200_000_000, modelRequestCount: 8_888, toolCallCount: 3_001),
+                AgentWorkSource(source: "Hermes Agent", tokens: 1_800_000_000, modelRequestCount: 1_204, toolCallCount: 488),
+                AgentWorkSource(source: "Cursor", tokens: 999_999_999, modelRequestCount: 710, toolCallCount: 202)
+            ]
+            cost = 8_888.88
+        case "agents5":
+            models = [
+                "gpt-5.2-codex": 200_000_000,
+                "claude-opus-4.1": 100_000_000,
+                "gemini-2.5-pro": 60_000_000,
+                "deepseek-v4": 30_000_000,
+                "grok-4": 20_000_000,
+                "unknown": 18_000_000
+            ]
+            sources = [
+                AgentWorkSource(source: "Codex", tokens: 240_000_000, modelRequestCount: 480, toolCallCount: 180),
+                AgentWorkSource(source: "ZCode", tokens: 80_000_000, modelRequestCount: 160, toolCallCount: 60),
+                AgentWorkSource(source: "Hermes Agent", tokens: 55_000_000, modelRequestCount: 110, toolCallCount: 40),
+                AgentWorkSource(source: "Cursor", tokens: 33_000_000, modelRequestCount: 66, toolCallCount: 24),
+                AgentWorkSource(source: "Claude Code", tokens: 20_000_000, modelRequestCount: 40, toolCallCount: 14)
+            ]
+            tools = Dictionary(uniqueKeysWithValues: sources.map { ($0.source, $0.tokens) })
+        default:
+            break
+        }
+
         let daily = DailyUsage(
             date: today,
-            tools: ["Codex": 320_000_000, "Claude Code": 82_000_000, "Cursor": 26_000_000],
-            models: ["gpt-5.2-codex": 310_000_000, "claude-opus-4.1": 82_000_000, "gemini-2.5-pro": 36_000_000],
-            modelCosts: ["gpt-5.2-codex": 15.8, "claude-opus-4.1": 6.7, "gemini-2.5-pro": 1.4],
+            tools: tools,
+            models: models,
+            modelCosts: [:],
             totalTokens: total,
-            cost: 23.9
+            cost: cost
         )
         let work = DailyAgentWork(
             date: today,
             totalTokens: total,
             activeHours: 8,
-            modelRequestCount: 824,
-            toolCallCount: 312,
-            sources: [
-                AgentWorkSource(source: "Codex", tokens: 320_000_000, modelRequestCount: 612, toolCallCount: 228),
-                AgentWorkSource(source: "Claude Code", tokens: 82_000_000, modelRequestCount: 156, toolCallCount: 66),
-                AgentWorkSource(source: "Cursor", tokens: 26_000_000, modelRequestCount: 56, toolCallCount: 18)
-            ],
-            inputTokens: 420_000_000,
-            cachedInputTokens: 302_000_000,
-            outputTokens: 8_000_000,
+            modelRequestCount: total > 0 ? 824 : 0,
+            toolCallCount: total > 0 ? 312 : 0,
+            sources: sources,
+            inputTokens: total,
+            cachedInputTokens: total * 7 / 10,
+            outputTokens: total / 50,
             cacheCoverageComplete: true
         )
         return UsageSnapshot(
             generatedAt: ISO8601DateFormatter().string(from: Date()),
             timezone: "Asia/Shanghai",
-            totals: UsageTotals(tokens: total, cost: 23.9, activeDays: 58),
+            totals: UsageTotals(tokens: total, cost: cost, activeDays: total > 0 ? 58 : 0),
             daily: [daily],
             agentWork: [work],
             tools: [],
@@ -123,7 +213,9 @@ struct PopoverPanelRender {
     private static func fixtureSettings(
         theme: TokenStepTheme,
         chapter: TokenStepOdysseyChapter,
-        showsRank: Bool
+        showsRank: Bool,
+        showsQuotas: Bool,
+        language: TokenStepLanguage
     ) -> TokenStepSettings {
         TokenStepSettings(
             dailyGoalTokens: 1_000_000_000,
@@ -135,12 +227,12 @@ struct PopoverPanelRender {
             requireVerifiedUpdates: true,
             tokenIslandEnabled: false,
             tokenIslandPlacement: .menuBar,
-            enabledQuotaProviders: [.codex, .claude, .cursor],
-            cursorQuotaEnabled: true,
+            enabledQuotaProviders: showsQuotas ? [.codex, .claude, .cursor] : [],
+            cursorQuotaEnabled: showsQuotas,
             cursorCodeSignalEnabled: false,
             agentWorkRankVisibility: showsRank ? .visible : .hidden,
             showExperimentalAgentSources: true,
-            language: .zhHans,
+            language: language,
             skippedUpdateVersion: nil,
             classicTheme: .green,
             odysseyChapter: chapter
@@ -177,6 +269,33 @@ struct PopoverPanelRender {
                 entries: [entry]
             ),
             identity
+        )
+    }
+
+    private static func fixtureUpdatePhase(
+        _ state: String,
+        update: AvailableUpdate
+    ) -> UpdateCheckPhase {
+        let checkedAt = Date(timeIntervalSince1970: 1_787_628_600)
+        switch state {
+        case "checking": return .checking
+        case "up-to-date": return .upToDate(checkedAt: checkedAt)
+        case "available": return .available(update, checkedAt: checkedAt)
+        case "failed": return .failed(checkedAt: checkedAt, message: L("检查更新失败，请稍后再试。"))
+        default: return .idle
+        }
+    }
+
+    private static func fixtureUpdate() -> AvailableUpdate {
+        AvailableUpdate(
+            version: "0.2.6",
+            tagName: "v0.2.6",
+            title: "TokenStep 0.2.6",
+            notes: "新增浮层更新入口与全局自动更新提醒",
+            pageURL: URL(string: "https://example.com/release")!,
+            assetURL: URL(string: "https://example.com/TokenStep.dmg")!,
+            assetName: "TokenStep-0.2.6.dmg",
+            assetSize: 12_000_000
         )
     }
 

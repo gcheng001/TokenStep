@@ -9,7 +9,7 @@ struct PopoverAgentWorkTable: View {
 
     var body: some View {
         let voyage = TokenStepThemeRuntime.isVoyage
-        return VStack(alignment: .leading, spacing: voyage ? 13 : 10) {
+        return VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(L("Agent 用量"))
                     .font((voyage ? Font.callout : Font.caption).weight(.heavy))
@@ -19,27 +19,24 @@ struct PopoverAgentWorkTable: View {
                     .font((voyage ? Font.caption : Font.caption2).weight(.bold))
                     .foregroundStyle(.secondary)
             }
+            .frame(height: 20)
 
             if rows.isEmpty {
                 Text(L("今日还没有 Agent 记录"))
-                    .font(.caption.weight(.semibold))
+                    .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, minHeight: 32, alignment: .leading)
             } else {
-                VStack(spacing: 0) {
-                    header
-                    ForEach(rows) { row in
-                        rowView(row)
-                    }
+                header
+                    .frame(height: 18)
+                ForEach(visibleRows) { row in
+                    rowView(row)
                 }
-                Text(L("Cursor 官方用量，计入圆环"))
-                    .font(.system(size: voyage ? 10.5 : 10, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.top, voyage ? 10 : 8)
             }
         }
-        .padding(voyage ? 18 : 14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal, voyage ? 14 : 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .top)
         .contentShape(Rectangle())
         .onTapGesture {
             MainWindowPresenter.shared.show(appState: appState, section: .today)
@@ -54,7 +51,6 @@ struct PopoverAgentWorkTable: View {
         }
         .font(.system(size: voyage ? 11.5 : 10.5, weight: .semibold))
         .foregroundStyle(.secondary)
-        .padding(.bottom, 6)
     }
 
     private func rowView(_ row: AgentWorkSource) -> some View {
@@ -63,20 +59,21 @@ struct PopoverAgentWorkTable: View {
             HStack(alignment: .center, spacing: 6) {
                 Circle()
                     .fill(tokenToolColor(row.source))
-                    .frame(width: 7, height: 7)
+                    .frame(width: 6, height: 6)
                 Text(row.source)
-                    .lineLimit(2)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                     .multilineTextAlignment(.leading)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .help(row.source)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Text(TokenStepFormat.tokens(row.tokens, compact: true))
                 .frame(width: voyage ? 88 : 72, alignment: .trailing)
                 .monospacedDigit()
         }
-        .font(.system(size: voyage ? 13.5 : 12, weight: .semibold))
+        .font(.system(size: voyage ? 11.5 : 10.5, weight: .semibold))
         .foregroundStyle(Color.tokenInk.opacity(0.82))
-        .padding(.vertical, voyage ? 10 : 7)
+        .frame(height: 25)
         .overlay(alignment: .top) {
             Rectangle().fill(Color.tokenDivider).frame(height: 1)
         }
@@ -85,6 +82,13 @@ struct PopoverAgentWorkTable: View {
     private var rows: [AgentWorkSource] {
         work.sources
             .filter { $0.tokens > 0 }
-            .sorted { $0.tokens > $1.tokens }
+            .sorted {
+                if $0.tokens != $1.tokens { return $0.tokens > $1.tokens }
+                return $0.source.localizedStandardCompare($1.source) == .orderedAscending
+            }
+    }
+
+    private var visibleRows: [AgentWorkSource] {
+        Array(rows.prefix(3))
     }
 }

@@ -46,6 +46,8 @@ struct PopoverFooterView: View {
                 }
                 .disabled(appState.isRefreshing)
 
+                PopoverUpdateActionButton()
+
                 PopoverActionButton(title: L("设置"), symbol: "gearshape") {
                     SettingsWindowPresenter.shared.show(appState: appState)
                 }
@@ -102,6 +104,8 @@ struct PopoverFooterView: View {
                     }
                     .disabled(appState.isRefreshing)
 
+                    PopoverUpdateActionButton()
+
                     PopoverActionButton(title: L("设置"), symbol: "gearshape") {
                         SettingsWindowPresenter.shared.show(appState: appState)
                     }
@@ -112,6 +116,50 @@ struct PopoverFooterView: View {
                 }
             }
         }
+    }
+}
+
+private struct PopoverUpdateActionButton: View {
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        Button {
+            appState.showUpdateDetails()
+        } label: {
+            ZStack {
+                if state.isChecking {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(state.tint)
+                } else {
+                    Image(systemName: state.symbol)
+                        .font(.system(size: 14, weight: .heavy))
+                        .foregroundStyle(state.tint)
+                }
+
+                if state.isAvailable {
+                    Circle()
+                        .fill(Color.tokenGreen)
+                        .frame(width: 5.5, height: 5.5)
+                        .offset(x: 12, y: -12)
+                }
+            }
+            .frame(width: 40, height: 40)
+            .background(Color.tokenSurface, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(state.isAvailable ? Color.tokenGreen.opacity(0.56) : Color.tokenHairline)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .disabled(state.isChecking)
+        .help(state.help)
+        .accessibilityLabel(state.accessibilityLabel)
+    }
+
+    private var state: UpdateActionVisualState {
+        appState.updateActionVisualState
     }
 }
 

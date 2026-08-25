@@ -284,6 +284,10 @@ struct TokenStepBrandLockup: View {
 }
 
 struct OdysseyPopoverBackdrop: View {
+    var motionMode: OdysseyMotionPrototypeMode = .current
+    var isMotionSurfaceActive = false
+    var isScreenshotRendering = false
+
     var body: some View {
         GeometryReader { proxy in
             ZStack {
@@ -298,6 +302,16 @@ struct OdysseyPopoverBackdrop: View {
                         .clipped()
                 } else {
                     VoyageBackdropAtmosphere(role: .popover)
+                }
+
+                if TokenStepThemeRuntime.odysseyChapter == .trojanInferno,
+                   motionMode != .off,
+                   !isScreenshotRendering {
+                    OdysseyTrojanAmbientView(
+                        mode: motionMode,
+                        isSurfaceVisible: isMotionSurfaceActive,
+                        isScreenshotRendering: false
+                    )
                 }
 
                 LinearGradient(

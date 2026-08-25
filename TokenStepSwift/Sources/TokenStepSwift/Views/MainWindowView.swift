@@ -136,6 +136,8 @@ struct MainWindowView: View {
                 .disabled(appState.isRefreshing)
                 .help(appState.isRefreshing ? L("同步中") : L("刷新"))
 
+                DashboardUpdateButton()
+
                 ScreenshotMenuButton(
                     copyTitle: L("复制当前页截图"),
                     saveTitle: navigation.section.saveScreenshotTitle,
@@ -185,6 +187,9 @@ struct MainWindowView: View {
                         appState.dismissUsageRecalibrationNotice()
                     }
                 }
+                if let update = appState.availableUpdate {
+                    UpdateNoticeCard(update: update)
+                }
                 detailView
             }
             .padding(16)
@@ -229,6 +234,46 @@ struct MainWindowView: View {
         case .privacy:
             PrivacyView()
         }
+    }
+}
+
+private struct DashboardUpdateButton: View {
+    @EnvironmentObject private var appState: AppState
+
+    var body: some View {
+        Button {
+            appState.showUpdateDetails()
+        } label: {
+            ZStack {
+                if state.isChecking {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(state.tint)
+                        .scaleEffect(0.72)
+                } else {
+                    Image(systemName: state.symbol)
+                        .font(.system(size: 12, weight: .heavy))
+                        .foregroundStyle(state.tint)
+                }
+
+                if state.isAvailable {
+                    Circle()
+                        .fill(Color.tokenGreen)
+                        .frame(width: 4.5, height: 4.5)
+                        .offset(x: 8, y: -8)
+                }
+            }
+            .frame(width: 28, height: 28)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(state.isChecking)
+        .help(state.help)
+        .accessibilityLabel(state.accessibilityLabel)
+    }
+
+    private var state: UpdateActionVisualState {
+        appState.updateActionVisualState
     }
 }
 

@@ -42,7 +42,8 @@ struct TokenStepApp: App {
                         refreshing: appState.isRefreshing,
                         theme: appState.settings.theme,
                         language: appState.settings.language,
-                        warning: appState.hasLowQuotaWarning
+                        warning: appState.hasLowQuotaWarning,
+                        updateAvailable: appState.availableUpdate != nil
                     )
                 }
             }

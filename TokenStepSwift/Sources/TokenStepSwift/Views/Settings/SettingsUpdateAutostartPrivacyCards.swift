@@ -84,10 +84,10 @@ struct SettingsUpdateCard: View {
 
                 HStack(spacing: 10) {
                     StatusLine(
-                        symbol: appState.availableUpdate == nil ? "checkmark.circle.fill" : "arrow.down.circle.fill",
-                        title: appState.availableUpdate == nil ? LFormat("当前版本 %@", UpdateService.currentVersion) : LFormat("发现 %@", appState.availableUpdate?.version ?? ""),
+                        symbol: updateStatusSymbol,
+                        title: updateStatusTitle,
                         value: updateCheckStatus,
-                        tint: appState.availableUpdate == nil ? .tokenGreen : .tokenGreenDark
+                        tint: updateStatusTint
                     )
 
                     updateActionButton
@@ -128,12 +128,36 @@ struct SettingsUpdateCard: View {
         if appState.availableUpdate != nil {
             return L("可更新")
         }
-        guard let date = appState.lastUpdateCheckAt else {
-            return L("尚未检查")
+        if case let .failed(_, message) = appState.updateCheckPhase {
+            return message
         }
+        guard let date = appState.lastUpdateCheckAt else { return L("尚未检查") }
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         return "\(formatter.string(from: date))"
+    }
+
+    private var updateStatusSymbol: String {
+        if appState.isCheckingForUpdates { return "arrow.triangle.2.circlepath" }
+        if appState.availableUpdate != nil { return "arrow.down.circle.fill" }
+        switch appState.updateCheckPhase {
+        case .failed: return "exclamationmark.arrow.circlepath"
+        case .upToDate: return "checkmark.circle.fill"
+        default: return "arrow.down.circle"
+        }
+    }
+
+    private var updateStatusTitle: String {
+        if let update = appState.availableUpdate { return LFormat("发现 %@", update.version) }
+        if case .failed = appState.updateCheckPhase { return L("更新检查失败") }
+        return LFormat("当前版本 %@", UpdateService.currentVersion)
+    }
+
+    private var updateStatusTint: Color {
+        if appState.availableUpdate != nil { return .tokenGreenDark }
+        if case .failed = appState.updateCheckPhase { return .red.opacity(0.82) }
+        if case .upToDate = appState.updateCheckPhase { return .tokenGreen }
+        return .gray
     }
 }
 

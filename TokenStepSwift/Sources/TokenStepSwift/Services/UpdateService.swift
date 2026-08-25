@@ -35,9 +35,94 @@ struct AvailableUpdate: Identifiable, Equatable {
     }
 }
 
-enum UpdateCheckResult {
+enum UpdateCheckResult: Equatable {
     case upToDate
     case available(AvailableUpdate)
+}
+
+enum UpdateCheckPhase: Equatable {
+    case idle
+    case checking
+    case upToDate(checkedAt: Date)
+    case available(AvailableUpdate, checkedAt: Date)
+    case failed(checkedAt: Date, message: String)
+}
+
+enum UpdateCheckTrigger: String, Equatable {
+    case startup
+    case timer
+    case foreground
+    case settingsEnabled
+    case manual
+
+    var isManual: Bool { self == .manual }
+}
+
+enum UpdateCheckPolicy {
+    static let automaticInterval: TimeInterval = 6 * 60 * 60
+    static let timerTolerance: TimeInterval = 15 * 60
+
+    static func shouldStart(
+        trigger: UpdateCheckTrigger,
+        autoUpdateEnabled: Bool,
+        lastAttemptAt: Date?,
+        now: Date,
+        startupCheckPending: Bool = false,
+        minimumInterval: TimeInterval = automaticInterval
+    ) -> Bool {
+        if trigger.isManual {
+            return true
+        }
+        guard autoUpdateEnabled else { return false }
+        if startupCheckPending, trigger == .foreground || trigger == .timer {
+            return false
+        }
+        guard trigger != .settingsEnabled else { return true }
+        guard let lastAttemptAt else { return true }
+        return now.timeIntervalSince(lastAttemptAt) >= minimumInterval
+    }
+
+    static func visibleUpdate(
+        from result: UpdateCheckResult,
+        skippedVersion: String?,
+        trigger: UpdateCheckTrigger
+    ) -> AvailableUpdate? {
+        guard case let .available(update) = result else { return nil }
+        if !trigger.isManual, skippedVersion == update.version {
+            return nil
+        }
+        return update
+    }
+}
+
+struct UpdateCheckGate {
+    private(set) var isChecking = false
+    private(set) var lastAttemptAt: Date?
+
+    mutating func begin(
+        trigger: UpdateCheckTrigger,
+        autoUpdateEnabled: Bool,
+        now: Date,
+        startupCheckPending: Bool = false
+    ) -> Bool {
+        guard !isChecking else { return false }
+        guard UpdateCheckPolicy.shouldStart(
+            trigger: trigger,
+            autoUpdateEnabled: autoUpdateEnabled,
+            lastAttemptAt: lastAttemptAt,
+            now: now,
+            startupCheckPending: startupCheckPending
+        ) else {
+            return false
+        }
+        isChecking = true
+        lastAttemptAt = now
+        return true
+    }
+
+    mutating func finish() {
+        isChecking = false
+    }
 }
 
 enum UpdateService {
@@ -47,20 +132,52 @@ enum UpdateService {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
     }
 
-    static func checkForUpdates(currentVersion: String = Self.currentVersion) async throws -> UpdateCheckResult {
-        var request = URLRequest(url: latestReleaseURL)
+    static func checkForUpdates(
+        currentVersion: String = Self.currentVersion,
+        session: URLSession = .shared,
+        releaseURL: URL? = nil
+    ) async throws -> UpdateCheckResult {
+        var request = URLRequest(url: releaseURL ?? latestReleaseURL)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 15
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("TokenStep/\(currentVersion)", forHTTPHeaderField: "User-Agent")
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
             throw UpdateError.checkFailed
         }
 
-        let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+        return try evaluateReleaseResponse(
+            data: data,
+            statusCode: http.statusCode,
+            currentVersion: currentVersion
+        )
+    }
+
+    static func evaluateReleaseResponse(
+        data: Data,
+        statusCode: Int,
+        currentVersion: String
+    ) throws -> UpdateCheckResult {
+        guard (200..<300).contains(statusCode) else {
+            throw UpdateError.checkFailed
+        }
+
+        let release: GitHubRelease
+        do {
+            release = try JSONDecoder().decode(GitHubRelease.self, from: data)
+        } catch {
+            throw UpdateError.checkFailed
+        }
         guard !release.draft, !release.prerelease else { return .upToDate }
         let version = release.tagName.strippingVersionPrefix
-        guard Version(version) > Version(currentVersion) else { return .upToDate }
+        guard let releaseVersion = Version(version),
+              let installedVersion = Version(currentVersion)
+        else {
+            throw UpdateError.checkFailed
+        }
+        guard releaseVersion > installedVersion else { return .upToDate }
         guard let asset = release.assets.first(where: { $0.name.lowercased().hasSuffix(".dmg") }),
               let pageURL = URL(string: release.htmlURL),
               let assetURL = URL(string: asset.downloadURL)
@@ -399,7 +516,7 @@ enum UpdateService {
     }
 }
 
-enum UpdateError: LocalizedError {
+enum UpdateError: LocalizedError, Equatable {
     case checkFailed
     case missingDMG
     case downloadFailed
@@ -509,10 +626,16 @@ private struct GitHubReleaseAsset: Decodable {
 private struct Version: Comparable {
     var parts: [Int]
 
-    init(_ value: String) {
-        parts = value.strippingVersionPrefix
-            .split(separator: ".")
-            .map { Int($0.prefix { $0.isNumber }) ?? 0 }
+    init?(_ value: String) {
+        let components = value.strippingVersionPrefix.split(separator: ".")
+        guard !components.isEmpty else { return nil }
+        var parsed: [Int] = []
+        for component in components {
+            let digits = component.prefix { $0.isNumber }
+            guard !digits.isEmpty, let number = Int(digits) else { return nil }
+            parsed.append(number)
+        }
+        parts = parsed
     }
 
     static func < (lhs: Version, rhs: Version) -> Bool {

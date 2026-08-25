@@ -8,6 +8,7 @@ struct StatusBarLabelView: View {
     var theme: TokenStepTheme
     var language: TokenStepLanguage
     var warning: Bool = false
+    var updateAvailable: Bool = false
 
     var body: some View {
         HStack(spacing: 7) {
@@ -22,6 +23,13 @@ struct StatusBarLabelView: View {
                 .font(.system(size: 14, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .foregroundStyle(Color.primary)
+
+            if updateAvailable {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.tokenGreen)
+                    .accessibilityLabel(L("可更新"))
+            }
         }
         .padding(.horizontal, 2)
         .frame(height: 24)

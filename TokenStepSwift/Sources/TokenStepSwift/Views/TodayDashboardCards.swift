@@ -284,9 +284,9 @@ enum TodayModelUsageRows {
     static let maximumVisibleRows = 5
     static let colorSlotCount = 4
 
-    static func make(from usage: DailyUsage) -> [TodayModelUsageRow] {
+    static func allPositiveRows(from usage: DailyUsage) -> [TodayModelUsageRow] {
         guard usage.totalTokens > 0 else { return [] }
-        let sorted = usage.models
+        return usage.models
             .filter { $0.value > 0 }
             .sorted {
                 if $0.value != $1.value { return $0.value > $1.value }
@@ -300,7 +300,10 @@ enum TodayModelUsageRows {
                     estimatedCost: usage.modelCosts[model]
                 )
             }
+    }
 
+    static func make(from usage: DailyUsage) -> [TodayModelUsageRow] {
+        let sorted = allPositiveRows(from: usage)
         guard sorted.count > 2 else { return sorted }
         return sorted.enumerated()
             .filter { index, row in index < 2 || row.percent >= 0.1 }

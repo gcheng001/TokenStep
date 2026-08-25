@@ -280,10 +280,103 @@ struct SettingsGeneralPane: View {
                                 set: { appState.setAutostart($0) }
                             )
                         )
+
+                        Rectangle()
+                            .fill(Color.tokenDivider)
+                            .frame(height: 1)
+                            .padding(.vertical, 8)
+
+                        HStack(spacing: 9) {
+                            Image(systemName: updateStatusSymbol)
+                                .font(.system(size: 13, weight: .heavy))
+                                .foregroundStyle(updateStatusTint)
+                                .frame(width: 18)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(updateStatusTitle)
+                                    .font(.caption.weight(.heavy))
+                                    .foregroundStyle(Color.tokenInk)
+                                Text(updateStatusDetail)
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer(minLength: 6)
+
+                            Button {
+                                appState.showUpdateDetails()
+                            } label: {
+                                Text(updateButtonTitle)
+                                    .font(.caption.weight(.heavy))
+                                    .frame(minWidth: 64, minHeight: 28)
+                            }
+                            .buttonStyle(SettingsSecondaryButtonStyle())
+                            .disabled(appState.isCheckingForUpdates)
+                        }
                     }
                 }
             }
         }
+    }
+
+    private var updateStatusSymbol: String {
+        if appState.isCheckingForUpdates { return "arrow.triangle.2.circlepath" }
+        if appState.availableUpdate != nil { return "arrow.down.circle.fill" }
+        switch appState.updateCheckPhase {
+        case .idle: return "arrow.down.circle"
+        case .checking: return "arrow.triangle.2.circlepath"
+        case .upToDate: return "checkmark.circle.fill"
+        case .available: return "arrow.down.circle.fill"
+        case .failed: return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var updateStatusTint: Color {
+        if appState.availableUpdate != nil { return .tokenGreenDark }
+        switch appState.updateCheckPhase {
+        case .failed: return .red.opacity(0.82)
+        case .upToDate: return .tokenSuccess
+        default: return Color.tokenInk.opacity(0.60)
+        }
+    }
+
+    private var updateStatusTitle: String {
+        if appState.isCheckingForUpdates { return L("正在检查更新") }
+        if let update = appState.availableUpdate {
+            return LFormat("发现新版本 %@", update.version)
+        }
+        switch appState.updateCheckPhase {
+        case .idle:
+            return appState.lastUpdateCheckAt == nil ? L("尚未检查") : L("已是最新版本")
+        case .checking: return L("正在检查更新")
+        case .upToDate: return L("已是最新版本")
+        case let .available(update, _): return LFormat("发现新版本 %@", update.version)
+        case .failed: return L("更新检查失败")
+        }
+    }
+
+    private var updateStatusDetail: String {
+        switch appState.updateCheckPhase {
+        case let .upToDate(checkedAt), let .available(_, checkedAt):
+            return LFormat("上次检查 %@", updateTime(checkedAt))
+        case let .failed(_, message):
+            return message
+        case .idle where appState.lastUpdateCheckAt != nil:
+            return LFormat("上次检查 %@", updateTime(appState.lastUpdateCheckAt!))
+        default:
+            return LFormat("当前版本 %@", UpdateService.currentVersion)
+        }
+    }
+
+    private var updateButtonTitle: String {
+        if appState.isCheckingForUpdates { return L("检查中") }
+        return appState.availableUpdate == nil ? L("检查更新") : L("查看更新")
+    }
+
+    private func updateTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
     }
 
     private var refreshOptions: [RefreshOption] {

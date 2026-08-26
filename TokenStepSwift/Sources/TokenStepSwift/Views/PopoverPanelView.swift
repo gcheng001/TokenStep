@@ -5,6 +5,8 @@ struct PopoverPanelView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.isScreenshotRendering) private var isScreenshotRendering
     @State private var odysseyMotionSurfaceVisible = false
+    @State private var interstellarMotionMode = InterstellarMotionLabConfiguration.initialMode
+    @State private var interstellarManualPulseTrigger = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -23,7 +25,13 @@ struct PopoverPanelView: View {
         .frame(width: 900)
         .background {
             if TokenStepThemeRuntime.isInterstellar {
-                InterstellarBackdrop(role: .popover, isScreenshotRendering: isScreenshotRendering)
+                InterstellarBackdrop(
+                    role: .popover,
+                    isScreenshotRendering: isScreenshotRendering,
+                    motionMode: interstellarMotionMode,
+                    tokenActivity: appState.today.totalTokens,
+                    manualPulseTrigger: interstellarManualPulseTrigger
+                )
             } else if TokenStepThemeRuntime.isVoyage {
                 OdysseyPopoverBackdrop(
                     isMotionSurfaceActive: odysseyMotionSurfaceVisible,
@@ -65,6 +73,15 @@ struct PopoverPanelView: View {
                 titleSize: TokenStepThemeRuntime.isCinematic ? 20 : 17
             )
             Spacer()
+            if TokenStepThemeRuntime.isInterstellar,
+               InterstellarMotionLabConfiguration.isEnabled {
+                InterstellarMotionLabPicker(
+                    mode: $interstellarMotionMode,
+                    triggerPulse: {
+                        interstellarManualPulseTrigger &+= 1
+                    }
+                )
+            }
             HStack(spacing: 6) {
                 Circle()
                     .fill(appState.isRefreshing ? Color.secondary.opacity(0.68) : Color.tokenSuccess)

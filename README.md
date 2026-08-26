@@ -22,7 +22,7 @@ TokenStep 是一个 macOS 菜单栏 App，用来本地统计你在 Codex、Claud
 
 下载最新版 DMG，打开后把 `TokenStep.app` 拖进「应用程序」即可使用：
 
-[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.8.dmg)
+[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.9.dmg)
 
 也可以从 Release 页面查看所有版本：
 
@@ -31,6 +31,26 @@ TokenStep 是一个 macOS 菜单栏 App，用来本地统计你在 Codex、Claud
 TokenStep 已使用 Developer ID 签名并通过 Apple 公证。首次打开时，macOS 可能会出现标准确认弹窗，这是正常现象。
 
 Windows版本由十七做了移植，欢迎大家前往使用：https://github.com/canyexuanfan/TokenStep-Windows/releases 
+
+## 0.2.9 重大更新：引力动效实验室
+
+0.2.9 给「引力边界」主题装上了真正的引力动效。黑洞不再是一张静态壁纸：打开浮层或仪表盘的瞬间，你就在朝它坠落。
+
+<p align="center">
+  <img src="docs/images/tokenstep-0.2.9-motion-lab-plunge.gif" alt="TokenStep 0.2.9 坠落模式：黑洞向你压来" width="900" />
+</p>
+
+- **三档签名动效，浮层右上角随时切换**：静谧（只剩环境光呼吸）、轨道（白热等离子光斑拖着彗尾沿吸积盘弧线绕行，星尘坠落）、坠落（黑洞以自身为中心原地膨胀、越来越亮，9 秒内把你吞进去后悬置）。
+- **Token 坠落脉冲**：坠落模式下，今日 Token 增长或点击浮层波形按钮，会从视界方向涌出一圈进食波。
+- **每次打开都是一次新的坠落**：浮层关闭即复位，重新打开从头开始逼近；窗口失焦、被遮挡时动效自动暂停省电。
+- **低成本有底线**：最高 24 fps；低电量模式降到 12 fps 并冻结逼近；截图和 macOS「减少动态效果」下保持完全静态；所有动效由纯函数采样驱动，可用固定时间离线渲染逐帧校验。
+- **可感但克制**：静谧档保持接近静态的呼吸；轨道档持续有可察觉的流动；只有坠落档全力逼近。
+
+<p align="center">
+  <img src="docs/images/tokenstep-0.2.9-motion-lab-orbit.gif" alt="TokenStep 0.2.9 轨道模式：等离子光斑绕行" width="900" />
+</p>
+
+本次不改变 Token、金额、额度、排行榜及本地采集口径，经典与奥德赛主题不受影响。完整说明见 [0.2.9 发布说明](docs/RELEASE_NOTES_0.2.9.md)。
 
 ## 0.2.8 更新：引力边界图标精修
 
@@ -108,7 +128,7 @@ TokenStep 第一次从“更换配色”升级为完整的**主题皮肤包系�
 - 新增奥德赛弓箭阶梯 Logo；用量采用骨金、冷金或余烬橙，绿色只保留给同步成功等状态反馈。
 - 关闭排行榜后浮层会自动收短，多来源额度则使用紧凑布局完整展示。
 
-打开 `设置 → 通用 → 主题皮肤包` 即可切换。完整说明见 [0.2.4 发布说明](docs/RELEASE_NOTES_0.2.4.md)，或直接[下载已签名并通过 Apple 公证的最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.8.dmg)。
+打开 `设置 → 通用 → 主题皮肤包` 即可切换。完整说明见 [0.2.4 发布说明](docs/RELEASE_NOTES_0.2.4.md)，或直接[下载已签名并通过 Apple 公证的最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.9.dmg)。
 
 ## TokenStep 适合谁？
 
@@ -167,7 +187,7 @@ TokenStep 默认只做本地统计。
 
 ## 安装方式
 
-1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.8.dmg)。
+1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.9.dmg)。
 2. 打开 DMG。
 3. 把 `TokenStep.app` 拖到「应用程序」。
 4. 启动 TokenStep。
@@ -227,7 +247,7 @@ TokenStepSwift/dist/TokenStep.app
 Developer ID 签名：
 
 ```bash
-TOKENSTEP_VERSION=0.2.8 \
+TOKENSTEP_VERSION=0.2.9 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 ./script/package_release.sh
 ```
@@ -235,7 +255,7 @@ CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 签名 + Apple 公证：
 
 ```bash
-TOKENSTEP_VERSION=0.2.8 \
+TOKENSTEP_VERSION=0.2.9 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 TOKENSTEP_NOTARY_PROFILE="tokenstep-notary" \
 ./script/package_release.sh --notarize
@@ -250,7 +270,7 @@ release/TokenStep-<version>.dmg
 
 维护者说明见 [docs/RELEASE.md](docs/RELEASE.md)。
 
-0.2.8 发布说明见 [docs/RELEASE_NOTES_0.2.8.md](docs/RELEASE_NOTES_0.2.8.md)；0.2.7 发布说明见 [docs/RELEASE_NOTES_0.2.7.md](docs/RELEASE_NOTES_0.2.7.md)；引力边界实现说明见 [docs/INTERSTELLAR_THEME_PACK_0.2.7.md](docs/INTERSTELLAR_THEME_PACK_0.2.7.md)；0.2.6 更新闭环说明见 [docs/RELEASE_NOTES_0.2.6.md](docs/RELEASE_NOTES_0.2.6.md)；0.2.4 奥德赛主题包说明见 [docs/ODYSSEY_THEME_PACK_0.2.4.md](docs/ODYSSEY_THEME_PACK_0.2.4.md)。
+0.2.9 发布说明见 [docs/RELEASE_NOTES_0.2.9.md](docs/RELEASE_NOTES_0.2.9.md)；0.2.8 发布说明见 [docs/RELEASE_NOTES_0.2.8.md](docs/RELEASE_NOTES_0.2.8.md)；0.2.7 发布说明见 [docs/RELEASE_NOTES_0.2.7.md](docs/RELEASE_NOTES_0.2.7.md)；引力边界实现说明见 [docs/INTERSTELLAR_THEME_PACK_0.2.7.md](docs/INTERSTELLAR_THEME_PACK_0.2.7.md)；0.2.6 更新闭环说明见 [docs/RELEASE_NOTES_0.2.6.md](docs/RELEASE_NOTES_0.2.6.md)；0.2.4 奥德赛主题包说明见 [docs/ODYSSEY_THEME_PACK_0.2.4.md](docs/ODYSSEY_THEME_PACK_0.2.4.md)。
 
 ## 开源协议
 

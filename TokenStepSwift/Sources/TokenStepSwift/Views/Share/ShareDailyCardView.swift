@@ -63,6 +63,8 @@ struct ShareDailyCardView: View {
 
             if TokenStepThemeRuntime.isVoyage {
                 VoyageWindowFrame(inset: 8)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarWindowFrame(inset: 8)
             }
         }
         .frame(width: 600, height: 980)
@@ -94,6 +96,11 @@ struct ShareDailyCardView: View {
                         .frame(width: 230, height: 210)
                         .opacity(0.24)
                         .offset(x: 18, y: 12)
+                } else if TokenStepThemeRuntime.isInterstellar {
+                    InterstellarEventHorizonEmblem()
+                        .frame(width: 250, height: 150)
+                        .opacity(0.34)
+                        .offset(x: 18, y: 12)
                 }
 
                 HStack(alignment: .center, spacing: 18) {
@@ -105,6 +112,13 @@ struct ShareDailyCardView: View {
                         Group {
                             if TokenStepThemeRuntime.isVoyage {
                                 VoyageBowProgressView(progress: lap.currentLapProgress, lineWidth: 20, color: lap.color)
+                            } else if TokenStepThemeRuntime.isInterstellar {
+                                ProgressRingView(progress: lap.currentLapProgress, lineWidth: 20, color: lap.color)
+                                    .overlay {
+                                        InterstellarEventHorizonEmblem()
+                                            .padding(42)
+                                            .opacity(0.52)
+                                    }
                             } else {
                                 ProgressRingView(progress: lap.currentLapProgress, lineWidth: 20, color: lap.color)
                             }
@@ -445,7 +459,7 @@ private struct ShareCardSurface<Content: View>: View {
             .background {
                 ZStack {
                     shape.fill(Color.tokenSurface)
-                    if TokenStepThemeRuntime.isVoyage {
+                    if TokenStepThemeRuntime.isCinematic {
                         LinearGradient(
                             colors: [Color.tokenGreen.opacity(0.055), Color.clear, Color.tokenGreenDark.opacity(0.025)],
                             startPoint: .topLeading,
@@ -460,6 +474,8 @@ private struct ShareCardSurface<Content: View>: View {
                     shape.stroke(Color.tokenHairline)
                     if TokenStepThemeRuntime.isVoyage {
                         VoyageCardOrnament(cornerRadius: cornerRadius)
+                    } else if TokenStepThemeRuntime.isInterstellar {
+                        InterstellarCardOrnament(cornerRadius: cornerRadius)
                     }
                 }
             }

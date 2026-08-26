@@ -10,6 +10,13 @@ struct TodayHeroCard: View {
                 ZStack {
                     if TokenStepThemeRuntime.isVoyage {
                         VoyageBowProgressView(progress: lap.currentLapProgress, lineWidth: 16, color: lap.ringColor)
+                    } else if TokenStepThemeRuntime.isInterstellar {
+                        ProgressRingView(progress: lap.currentLapProgress, lineWidth: 16, color: lap.ringColor)
+                            .overlay {
+                                InterstellarEventHorizonEmblem()
+                                    .padding(34)
+                                    .opacity(0.50)
+                            }
                     } else {
                         ProgressRingView(progress: lap.currentLapProgress, lineWidth: 16, color: lap.ringColor)
                     }
@@ -93,6 +100,11 @@ struct TodayAgentIntensityCard: View {
                     .frame(width: 94, height: 76)
                     .padding(14)
                     .opacity(0.54)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarEventHorizonEmblem()
+                    .frame(width: 116, height: 58)
+                    .padding(14)
+                    .opacity(0.44)
             }
         }
     }
@@ -172,6 +184,11 @@ struct TodayHourlyCard: View {
                     .frame(width: 180, height: 86)
                     .padding(12)
                     .opacity(0.46)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarEventHorizonEmblem()
+                    .frame(width: 180, height: 70)
+                    .padding(12)
+                    .opacity(0.34)
             }
         }
     }

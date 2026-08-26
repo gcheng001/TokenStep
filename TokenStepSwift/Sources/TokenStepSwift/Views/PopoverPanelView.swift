@@ -9,20 +9,22 @@ struct PopoverPanelView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
-            if TokenStepThemeRuntime.isVoyage {
-                odysseyContent
+            if TokenStepThemeRuntime.isCinematic {
+                cinematicContent
             } else {
                 classicColumns
             }
             notices
             PopoverFooterView()
-                .padding(.horizontal, TokenStepThemeRuntime.isVoyage ? 22 : 16)
-                .padding(.top, TokenStepThemeRuntime.isVoyage ? 14 : 12)
-                .padding(.bottom, TokenStepThemeRuntime.isVoyage ? 20 : 14)
+                .padding(.horizontal, TokenStepThemeRuntime.isCinematic ? 22 : 16)
+                .padding(.top, TokenStepThemeRuntime.isCinematic ? 14 : 12)
+                .padding(.bottom, TokenStepThemeRuntime.isCinematic ? 20 : 14)
         }
         .frame(width: 900)
         .background {
-            if TokenStepThemeRuntime.isVoyage {
+            if TokenStepThemeRuntime.isInterstellar {
+                InterstellarBackdrop(role: .popover, isScreenshotRendering: isScreenshotRendering)
+            } else if TokenStepThemeRuntime.isVoyage {
                 OdysseyPopoverBackdrop(
                     isMotionSurfaceActive: odysseyMotionSurfaceVisible,
                     isScreenshotRendering: isScreenshotRendering
@@ -40,6 +42,8 @@ struct PopoverPanelView: View {
         .overlay {
             if TokenStepThemeRuntime.isVoyage {
                 OdysseyPopoverWindowFrame(inset: 7)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarWindowFrame(inset: 7)
             }
         }
         .environment(\.colorScheme, appState.settings.theme.colorScheme)
@@ -57,8 +61,8 @@ struct PopoverPanelView: View {
     private var header: some View {
         HStack(spacing: 10) {
             TokenStepBrandLockup(
-                markSize: TokenStepThemeRuntime.isVoyage ? 34 : 28,
-                titleSize: TokenStepThemeRuntime.isVoyage ? 20 : 17
+                markSize: TokenStepThemeRuntime.isCinematic ? 34 : 28,
+                titleSize: TokenStepThemeRuntime.isCinematic ? 20 : 17
             )
             Spacer()
             HStack(spacing: 6) {
@@ -86,10 +90,10 @@ struct PopoverPanelView: View {
                 )
             }
         }
-        .padding(.horizontal, TokenStepThemeRuntime.isVoyage ? 26 : 16)
-        .frame(height: TokenStepThemeRuntime.isVoyage ? 72 : 48)
+        .padding(.horizontal, TokenStepThemeRuntime.isCinematic ? 26 : 16)
+        .frame(height: TokenStepThemeRuntime.isCinematic ? 72 : 48)
         .background {
-            if TokenStepThemeRuntime.isVoyage {
+            if TokenStepThemeRuntime.isCinematic {
                 LinearGradient(
                     colors: [Color.black.opacity(0.30), Color.tokenCanvas.opacity(0.12), Color.black.opacity(0.16)],
                     startPoint: .leading,
@@ -98,7 +102,7 @@ struct PopoverPanelView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if TokenStepThemeRuntime.isVoyage {
+            if TokenStepThemeRuntime.isCinematic {
                 LinearGradient(
                     colors: [Color.tokenGreen.opacity(0.58), Color.tokenDivider.opacity(0.34), Color.clear],
                     startPoint: .leading,
@@ -110,23 +114,23 @@ struct PopoverPanelView: View {
         }
     }
 
-    private var odysseyContent: some View {
+    private var cinematicContent: some View {
         VStack(spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
                 PopoverTodayRingCard()
                     .frame(width: 250, height: odysseyTopCardHeight)
-                    .background(OdysseyPopoverSectionBackground(opacity: 0.16))
+                    .background(cinematicSectionBackground(opacity: TokenStepThemeRuntime.isInterstellar ? 0.66 : 0.16))
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 centralUsageCard
                     .frame(minWidth: 330, maxWidth: .infinity, minHeight: odysseyTopCardHeight, maxHeight: odysseyTopCardHeight)
-                    .background(OdysseyPopoverSectionBackground(opacity: 0.46))
+                    .background(cinematicSectionBackground(opacity: TokenStepThemeRuntime.isInterstellar ? 0.70 : 0.46))
                     .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                 if appState.showsQuotaColumn {
                     PopoverQuotaCard()
                         .frame(width: 260, height: odysseyTopCardHeight)
-                        .background(OdysseyPopoverSectionBackground(opacity: 0.54))
+                        .background(cinematicSectionBackground(opacity: TokenStepThemeRuntime.isInterstellar ? 0.74 : 0.54))
                         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
             }
@@ -134,7 +138,7 @@ struct PopoverPanelView: View {
             if appState.shouldShowAgentWorkRank, appState.agentWorkRankIdentity != nil {
                 PopoverTokenRankCard(layout: .ribbon)
                     .frame(height: 76)
-                    .background(OdysseyPopoverSectionBackground(opacity: 0.58, cornerRadius: 16))
+                    .background(cinematicSectionBackground(opacity: TokenStepThemeRuntime.isInterstellar ? 0.76 : 0.58, cornerRadius: 16))
                     .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
         }
@@ -174,6 +178,15 @@ struct PopoverPanelView: View {
 
     private var odysseyTopCardHeight: CGFloat { 288 }
 
+    @ViewBuilder
+    private func cinematicSectionBackground(opacity: Double, cornerRadius: CGFloat = 18) -> some View {
+        if TokenStepThemeRuntime.isInterstellar {
+            InterstellarPanelBackground(opacity: opacity, cornerRadius: cornerRadius)
+        } else {
+            OdysseyPopoverSectionBackground(opacity: opacity, cornerRadius: cornerRadius)
+        }
+    }
+
     private var showsModelUsageSection: Bool {
         switch PopoverModelUsageRows.state(from: appState.today) {
         case .hidden: return false
@@ -182,7 +195,7 @@ struct PopoverPanelView: View {
     }
 
     private var centralUsageCard: some View {
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         return VStack(spacing: 0) {
             PopoverAgentWorkTable()
                 .frame(height: voyage ? (showsModelUsageSection ? 128 : odysseyTopCardHeight) : nil)

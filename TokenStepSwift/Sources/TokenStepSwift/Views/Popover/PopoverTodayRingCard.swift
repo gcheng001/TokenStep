@@ -5,7 +5,7 @@ struct PopoverTodayRingCard: View {
 
     var body: some View {
         let lap = appState.todayLap
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         let ringSize: CGFloat = voyage ? 164 : 118
         let lineWidth: CGFloat = voyage ? 14 : 12
 
@@ -21,12 +21,22 @@ struct PopoverTodayRingCard: View {
             }
 
             ZStack {
-                if voyage {
+                if TokenStepThemeRuntime.isVoyage {
                     Circle()
                         .fill(Color.tokenCanvas.opacity(0.42))
                         .padding(12)
                         .blur(radius: 0.2)
                     VoyageBowProgressView(progress: lap.currentLapProgress, lineWidth: lineWidth, color: lap.ringColor)
+                } else if TokenStepThemeRuntime.isInterstellar {
+                    Circle()
+                        .fill(Color.black.opacity(0.52))
+                        .padding(12)
+                    ProgressRingView(progress: lap.currentLapProgress, lineWidth: lineWidth, color: lap.ringColor)
+                        .overlay {
+                            InterstellarEventHorizonEmblem()
+                                .padding(30)
+                                .opacity(0.50)
+                        }
                 } else {
                     ProgressRingView(progress: lap.currentLapProgress, lineWidth: lineWidth, color: lap.ringColor)
                 }

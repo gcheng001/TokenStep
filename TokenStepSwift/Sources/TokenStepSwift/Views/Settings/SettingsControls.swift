@@ -35,7 +35,7 @@ enum SettingsBadgeStyle {
     case ok, warn, off, l1, l2, l3
 
     var foreground: Color {
-        if TokenStepThemeRuntime.isVoyage {
+        if TokenStepThemeRuntime.isCinematic {
             switch self {
             case .ok, .l1: return Color.tokenSuccess
             case .warn: return Color.tokenWarning
@@ -54,7 +54,7 @@ enum SettingsBadgeStyle {
     }
 
     var background: Color {
-        if TokenStepThemeRuntime.isVoyage {
+        if TokenStepThemeRuntime.isCinematic {
             switch self {
             case .ok, .l1: return Color.tokenSuccess.opacity(0.12)
             case .warn: return Color.tokenWarning.opacity(0.12)
@@ -73,7 +73,7 @@ enum SettingsBadgeStyle {
     }
 
     var border: Color {
-        if TokenStepThemeRuntime.isVoyage {
+        if TokenStepThemeRuntime.isCinematic {
             switch self {
             case .ok, .l1: return Color.tokenSuccess.opacity(0.30)
             case .warn: return Color.tokenWarning.opacity(0.34)
@@ -163,7 +163,7 @@ struct SettingsSectionCard<Content: View>: View {
     }
 
     private var sectionBackground: Color {
-        if TokenStepThemeRuntime.isVoyage {
+        if TokenStepThemeRuntime.isCinematic {
             return Color.tokenSurface
         }
         switch tint ?? badgeStyle {
@@ -174,7 +174,7 @@ struct SettingsSectionCard<Content: View>: View {
     }
 
     private var sectionBorder: Color {
-        if TokenStepThemeRuntime.isVoyage {
+        if TokenStepThemeRuntime.isCinematic {
             switch tint ?? badgeStyle {
             case .l2: return Color.tokenGreen.opacity(0.30)
             case .l3: return Color.tokenGreenDark.opacity(0.34)
@@ -258,7 +258,7 @@ struct SettingsCard<Content: View>: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .fill(Color.tokenSurface)
-                if TokenStepThemeRuntime.isVoyage {
+                if TokenStepThemeRuntime.isCinematic {
                     LinearGradient(
                         colors: [Color.tokenGreen.opacity(0.05), Color.clear, Color.tokenGreenDark.opacity(0.025)],
                         startPoint: .topLeading,
@@ -273,6 +273,8 @@ struct SettingsCard<Content: View>: View {
                 RoundedRectangle(cornerRadius: 24, style: .continuous).stroke(Color.tokenHairline)
                 if TokenStepThemeRuntime.isVoyage {
                     VoyageCardOrnament(cornerRadius: 24)
+                } else if TokenStepThemeRuntime.isInterstellar {
+                    InterstellarCardOrnament(cornerRadius: 24)
                 }
             }
         }
@@ -306,7 +308,7 @@ struct ThemeSwatchButton: View {
         Button(action: action) {
             VStack(spacing: 7) {
                 ZStack {
-                    if theme == .voyage {
+                    if theme == .voyage || theme == .eventHorizon {
                         TokenStepMark(size: 38)
                             .shadow(color: theme.palette.accentDark.color.opacity(selected ? 0.24 : 0.12), radius: 8, x: 0, y: 4)
                     } else {
@@ -329,7 +331,7 @@ struct ThemeSwatchButton: View {
                     if selected && theme != .voyage {
                         Image(systemName: "checkmark")
                             .font(.system(size: 13, weight: .heavy))
-                            .foregroundStyle(theme == .voyage ? Color.tokenActionText : Color.white)
+                            .foregroundStyle(theme == .voyage || theme == .eventHorizon ? Color.tokenActionText : Color.white)
                     }
                 }
 
@@ -442,6 +444,8 @@ struct ThemePackOptionButton: View {
                     }
                 }
                 .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(odysseyChapter.palette.accent.color.opacity(0.46)))
+        case .interstellar:
+            InterstellarThemePreview()
         }
     }
 }
@@ -608,7 +612,7 @@ struct TokenStepSwitchToggleStyle: ToggleStyle {
                     .fill(
                         configuration.isOn
                             ? Color.tokenToggleTint
-                            : Color.tokenTrack.opacity(TokenStepThemeRuntime.isVoyage ? 0.82 : 0.72)
+                            : Color.tokenTrack.opacity(TokenStepThemeRuntime.isCinematic ? 0.82 : 0.72)
                     )
                 Circle()
                     .fill(configuration.isOn ? Color.tokenInk : Color.tokenInk.opacity(0.62))

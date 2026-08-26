@@ -14,7 +14,8 @@ struct AvailableUpdate: Identifiable, Equatable {
     var assetSize: Int
 
     var formattedSize: String {
-        ByteCountFormatter.string(fromByteCount: Int64(assetSize), countStyle: .file)
+        guard assetSize > 0 else { return L("发布包") }
+        return ByteCountFormatter.string(fromByteCount: Int64(assetSize), countStyle: .file)
     }
 
     var noteLines: [String] {
@@ -61,6 +62,7 @@ enum UpdateCheckTrigger: String, Equatable {
 enum UpdateCheckPolicy {
     static let automaticInterval: TimeInterval = 6 * 60 * 60
     static let timerTolerance: TimeInterval = 15 * 60
+    static let manualCooldown: TimeInterval = 10
 
     static func shouldStart(
         trigger: UpdateCheckTrigger,
@@ -107,6 +109,7 @@ enum UpdatePresentationPolicy {
 struct UpdateCheckGate {
     private(set) var isChecking = false
     private(set) var lastAttemptAt: Date?
+    private(set) var lastManualAttemptAt: Date?
 
     mutating func begin(
         trigger: UpdateCheckTrigger,
@@ -115,6 +118,11 @@ struct UpdateCheckGate {
         startupCheckPending: Bool = false
     ) -> Bool {
         guard !isChecking else { return false }
+        if trigger.isManual,
+           let lastManualAttemptAt,
+           now.timeIntervalSince(lastManualAttemptAt) < UpdateCheckPolicy.manualCooldown {
+            return false
+        }
         guard UpdateCheckPolicy.shouldStart(
             trigger: trigger,
             autoUpdateEnabled: autoUpdateEnabled,
@@ -126,6 +134,9 @@ struct UpdateCheckGate {
         }
         isChecking = true
         lastAttemptAt = now
+        if trigger.isManual {
+            lastManualAttemptAt = now
+        }
         return true
     }
 
@@ -136,6 +147,8 @@ struct UpdateCheckGate {
 
 enum UpdateService {
     private static let latestReleaseURL = URL(string: "https://api.github.com/repos/Backtthefuture/TokenStep/releases/latest")!
+    private static let latestReleaseFallbackURL = URL(string: "https://github.com/Backtthefuture/TokenStep/releases/latest")!
+    private static let releaseDownloadBaseURL = URL(string: "https://github.com/Backtthefuture/TokenStep/releases/download/")!
 
     static var currentVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
@@ -144,7 +157,8 @@ enum UpdateService {
     static func checkForUpdates(
         currentVersion: String = Self.currentVersion,
         session: URLSession = .shared,
-        releaseURL: URL? = nil
+        releaseURL: URL? = nil,
+        fallbackURL: URL? = nil
     ) async throws -> UpdateCheckResult {
         var request = URLRequest(url: releaseURL ?? latestReleaseURL)
         request.cachePolicy = .reloadIgnoringLocalCacheData
@@ -152,16 +166,121 @@ enum UpdateService {
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         request.setValue("TokenStep/\(currentVersion)", forHTTPHeaderField: "User-Agent")
 
-        let (data, response) = try await session.data(for: request)
+        do {
+            let (data, response) = try await session.data(for: request)
+            guard let http = response as? HTTPURLResponse else {
+                throw UpdateError.checkFailed
+            }
+
+            if (200..<300).contains(http.statusCode) {
+                return try evaluateReleaseResponse(
+                    data: data,
+                    statusCode: http.statusCode,
+                    currentVersion: currentVersion
+                )
+            }
+
+            let primaryError = responseError(from: http)
+            do {
+                return try await checkFallbackLatestRelease(
+                    currentVersion: currentVersion,
+                    session: session,
+                    fallbackURL: fallbackURL
+                )
+            } catch {
+                throw primaryError
+            }
+        } catch let error as UpdateError {
+            throw error
+        } catch {
+            do {
+                return try await checkFallbackLatestRelease(
+                    currentVersion: currentVersion,
+                    session: session,
+                    fallbackURL: fallbackURL
+                )
+            } catch {
+                throw UpdateError.checkFailed
+            }
+        }
+    }
+
+    private static func checkFallbackLatestRelease(
+        currentVersion: String,
+        session: URLSession,
+        fallbackURL: URL?
+    ) async throws -> UpdateCheckResult {
+        var request = URLRequest(url: fallbackURL ?? latestReleaseFallbackURL)
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = 15
+        request.setValue("text/html,application/xhtml+xml", forHTTPHeaderField: "Accept")
+        request.setValue("TokenStep/\(currentVersion)", forHTTPHeaderField: "User-Agent")
+
+        let (_, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw UpdateError.checkFailed
         }
-
-        return try evaluateReleaseResponse(
-            data: data,
+        return try evaluateFallbackReleaseResponse(
+            responseURL: http.url,
             statusCode: http.statusCode,
             currentVersion: currentVersion
         )
+    }
+
+    static func evaluateFallbackReleaseResponse(
+        responseURL: URL?,
+        statusCode: Int,
+        currentVersion: String
+    ) throws -> UpdateCheckResult {
+        guard (200..<300).contains(statusCode),
+              let responseURL,
+              let tagName = releaseTag(from: responseURL),
+              let releaseVersion = Version(tagName.strippingVersionPrefix),
+              let installedVersion = Version(currentVersion)
+        else {
+            throw UpdateError.checkFailed
+        }
+
+        guard releaseVersion > installedVersion else { return .upToDate }
+        let version = tagName.strippingVersionPrefix
+        let assetName = "TokenStep-\(version).dmg"
+        let assetURL = releaseDownloadBaseURL
+            .appendingPathComponent(tagName, isDirectory: true)
+            .appendingPathComponent(assetName)
+
+        return .available(
+            AvailableUpdate(
+                version: version,
+                tagName: tagName,
+                title: "TokenStep \(version)",
+                notes: L("发现新的稳定版本，可直接下载并安装已签名公证的 DMG。"),
+                pageURL: responseURL,
+                assetURL: assetURL,
+                assetName: assetName,
+                assetSize: 0
+            )
+        )
+    }
+
+    private static func releaseTag(from url: URL) -> String? {
+        let marker = "/releases/tag/"
+        guard let range = url.path.range(of: marker) else { return nil }
+        let encoded = String(url.path[range.upperBound...])
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard !encoded.isEmpty, !encoded.contains("/") else { return nil }
+        return encoded.removingPercentEncoding ?? encoded
+    }
+
+    private static func responseError(from response: HTTPURLResponse) -> UpdateError {
+        let remaining = response.value(forHTTPHeaderField: "X-RateLimit-Remaining")
+        let isRateLimited = response.statusCode == 429
+            || (response.statusCode == 403 && remaining == "0")
+        guard isRateLimited else { return .checkFailed }
+
+        let resetAt = response.value(forHTTPHeaderField: "X-RateLimit-Reset")
+            .flatMap(TimeInterval.init)
+            .map(Date.init(timeIntervalSince1970:))
+        return .rateLimited(resetAt: resetAt)
     }
 
     static func evaluateReleaseResponse(
@@ -527,6 +646,7 @@ enum UpdateService {
 
 enum UpdateError: LocalizedError, Equatable {
     case checkFailed
+    case rateLimited(resetAt: Date?)
     case missingDMG
     case downloadFailed
     case verificationFailed
@@ -536,6 +656,13 @@ enum UpdateError: LocalizedError, Equatable {
         switch self {
         case .checkFailed:
             return L("检查更新失败，请稍后再试。")
+        case let .rateLimited(resetAt):
+            guard let resetAt else {
+                return L("GitHub 检查频率暂时受限，请稍后再试。")
+            }
+            let formatter = DateFormatter()
+            formatter.dateFormat = "HH:mm"
+            return LFormat("GitHub 检查频率暂时受限，预计 %@ 后恢复。", formatter.string(from: resetAt))
         case .missingDMG:
             return L("新版本没有可下载的 DMG。")
         case .downloadFailed:

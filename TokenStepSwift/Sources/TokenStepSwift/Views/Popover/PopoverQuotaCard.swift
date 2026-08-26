@@ -4,7 +4,7 @@ struct PopoverQuotaCard: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         return VStack(alignment: .leading, spacing: voyage ? 12 : 10) {
             HStack(spacing: 8) {
                 Text(L("订阅额度"))
@@ -57,7 +57,7 @@ struct PopoverQuotaCard: View {
     }
 
     private func quotaChip(_ quota: ProviderQuota) -> some View {
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         return VStack(alignment: .leading, spacing: voyage ? 4 : 6) {
             Text(quota.provider.displayName)
                 .font((voyage ? Font.system(size: 11.5) : Font.caption2).weight(.heavy))
@@ -80,7 +80,7 @@ struct PopoverQuotaCard: View {
     }
 
     private func quotaRow(_ window: QuotaWindow) -> some View {
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         return VStack(alignment: .leading, spacing: voyage ? 3 : 4) {
             HStack {
                 Text(window.kind.shortTitle)

@@ -103,13 +103,21 @@ final class UpdateServiceTests: XCTestCase {
         }
     }
 
-    func testManualCheckBypassesToggleThrottleAndSkippedVersion() {
+    func testManualPolicyBypassesToggleAndAutomaticThrottleAndSkippedVersion() {
         let now = Date(timeIntervalSince1970: 100_000)
         XCTAssertTrue(
             UpdateCheckPolicy.shouldStart(
                 trigger: .manual,
                 autoUpdateEnabled: false,
-                lastAttemptAt: now,
+                lastAttemptAt: now.addingTimeInterval(-10),
+                now: now
+            )
+        )
+        XCTAssertTrue(
+            UpdateCheckPolicy.shouldStart(
+                trigger: .manual,
+                autoUpdateEnabled: false,
+                lastAttemptAt: now.addingTimeInterval(-9),
                 now: now
             )
         )
@@ -234,13 +242,120 @@ final class UpdateServiceTests: XCTestCase {
             )
         )
         gate.finish()
-        XCTAssertTrue(
+        XCTAssertFalse(
             gate.begin(
                 trigger: .manual,
                 autoUpdateEnabled: false,
                 now: now.addingTimeInterval(2)
             )
         )
+        XCTAssertTrue(
+            gate.begin(
+                trigger: .manual,
+                autoUpdateEnabled: false,
+                now: now.addingTimeInterval(10)
+            )
+        )
+    }
+
+    func testRecentAutomaticCheckDoesNotBlockManualCheck() {
+        let now = Date(timeIntervalSince1970: 100_000)
+        var gate = UpdateCheckGate()
+        XCTAssertTrue(
+            gate.begin(
+                trigger: .startup,
+                autoUpdateEnabled: true,
+                now: now
+            )
+        )
+        gate.finish()
+        XCTAssertTrue(
+            gate.begin(
+                trigger: .manual,
+                autoUpdateEnabled: true,
+                now: now.addingTimeInterval(1)
+            )
+        )
+    }
+
+    func testFallbackLatestRedirectBuildsVersionedDMGWithoutGitHubAPI() throws {
+        let result = try UpdateService.evaluateFallbackReleaseResponse(
+            responseURL: URL(string: "https://github.com/Backtthefuture/TokenStep/releases/tag/v0.2.7"),
+            statusCode: 200,
+            currentVersion: "0.2.6"
+        )
+
+        guard case let .available(update) = result else {
+            return XCTFail("Expected fallback release to be available")
+        }
+        XCTAssertEqual(update.version, "0.2.7")
+        XCTAssertEqual(update.assetName, "TokenStep-0.2.7.dmg")
+        XCTAssertEqual(
+            update.assetURL.absoluteString,
+            "https://github.com/Backtthefuture/TokenStep/releases/download/v0.2.7/TokenStep-0.2.7.dmg"
+        )
+        XCTAssertEqual(update.formattedSize, L("发布包"))
+    }
+
+    func testFallbackLatestRedirectRejectsUnresolvedLatestPage() {
+        XCTAssertThrowsError(
+            try UpdateService.evaluateFallbackReleaseResponse(
+                responseURL: URL(string: "https://github.com/Backtthefuture/TokenStep/releases/latest"),
+                statusCode: 200,
+                currentVersion: "0.2.6"
+            )
+        ) { error in
+            XCTAssertEqual(error as? UpdateError, .checkFailed)
+        }
+    }
+
+    func testRateLimitedAPIUsesNonAPIFallback() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [UpdateMockURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        UpdateMockURLProtocol.handler = { request in
+            if request.url?.host == "api.example.com" {
+                let response = HTTPURLResponse(
+                    url: request.url!,
+                    statusCode: 403,
+                    httpVersion: nil,
+                    headerFields: [
+                        "X-RateLimit-Remaining": "0",
+                        "X-RateLimit-Reset": "100000"
+                    ]
+                )!
+                return (response, Data())
+            }
+
+            let resolvedURL = URL(string: "https://github.com/Backtthefuture/TokenStep/releases/tag/v0.2.7")!
+            let response = HTTPURLResponse(
+                url: resolvedURL,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/html"]
+            )!
+            return (response, Data())
+        }
+        defer { UpdateMockURLProtocol.handler = nil }
+
+        let result = try await UpdateService.checkForUpdates(
+            currentVersion: "0.2.6",
+            session: session,
+            releaseURL: URL(string: "https://api.example.com/releases/latest")!,
+            fallbackURL: URL(string: "https://www.example.com/releases/latest")!
+        )
+
+        guard case let .available(update) = result else {
+            return XCTFail("Expected fallback update")
+        }
+        XCTAssertEqual(update.version, "0.2.7")
+    }
+
+    func testRateLimitErrorExplainsRecoveryTime() {
+        let reset = Date(timeIntervalSince1970: 100_000)
+        let message = UpdateError.rateLimited(resetAt: reset).localizedDescription
+        XCTAssertTrue(message.contains("GitHub"))
+        XCTAssertTrue(message.contains(":"))
     }
 
     private func releaseData(
@@ -286,4 +401,28 @@ private extension String {
     var strippingLeadingV: String {
         hasPrefix("v") ? String(dropFirst()) : self
     }
+}
+
+private final class UpdateMockURLProtocol: URLProtocol {
+    static var handler: ((URLRequest) throws -> (HTTPURLResponse, Data))?
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let handler = Self.handler else {
+            client?.urlProtocol(self, didFailWithError: UpdateError.checkFailed)
+            return
+        }
+        do {
+            let (response, data) = try handler(request)
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocolDidFinishLoading(self)
+        } catch {
+            client?.urlProtocol(self, didFailWithError: error)
+        }
+    }
+
+    override func stopLoading() {}
 }

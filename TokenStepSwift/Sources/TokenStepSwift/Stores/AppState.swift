@@ -423,10 +423,10 @@ final class AppState: ObservableObject {
     }
 
     func setTheme(_ theme: TokenStepTheme) {
-        if theme == .voyage {
-            settings.theme = .voyage
-        } else {
+        if TokenStepTheme.classicCases.contains(theme) {
             settings.classicTheme = theme
+            settings.theme = theme
+        } else {
             settings.theme = theme
         }
         TokenStepThemeRuntime.apply(
@@ -437,7 +437,14 @@ final class AppState: ObservableObject {
     }
 
     func setThemePack(_ pack: TokenStepThemePack) {
-        settings.theme = pack == .odyssey ? .voyage : settings.classicTheme
+        switch pack {
+        case .classic:
+            settings.theme = settings.classicTheme
+        case .odyssey:
+            settings.theme = .voyage
+        case .interstellar:
+            settings.theme = .eventHorizon
+        }
         TokenStepThemeRuntime.apply(
             settings.theme,
             odysseyChapter: settings.odysseyChapter

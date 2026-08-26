@@ -16,6 +16,8 @@ struct DashboardScreenshotView: View {
 
             if TokenStepThemeRuntime.isVoyage {
                 VoyageWindowFrame(inset: 8)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarWindowFrame(inset: 8)
             }
         }
         .frame(width: 1000)

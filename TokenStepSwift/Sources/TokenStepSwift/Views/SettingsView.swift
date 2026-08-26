@@ -62,6 +62,8 @@ struct SettingsView: View {
         .overlay {
             if TokenStepThemeRuntime.isVoyage {
                 VoyageWindowFrame(inset: 8)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarWindowFrame(inset: 8)
             }
         }
     }
@@ -139,6 +141,11 @@ struct SettingsView: View {
                 OdysseySurfaceEmblem(role: .settings)
                     .frame(width: 124, height: 72)
                     .opacity(0.38)
+                    .offset(x: -92, y: 3)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarEventHorizonEmblem()
+                    .frame(width: 136, height: 58)
+                    .opacity(0.42)
                     .offset(x: -92, y: 3)
             }
         }
@@ -246,13 +253,13 @@ private struct DashboardSettingsTab: View {
                 .frame(height: 28)
                 .background(
                     selected
-                        ? (TokenStepThemeRuntime.isVoyage ? Color.tokenGreen.opacity(0.16) : Color.tokenSurface)
+                        ? (TokenStepThemeRuntime.isCinematic ? Color.tokenGreen.opacity(0.16) : Color.tokenSurface)
                         : Color.clear,
                     in: RoundedRectangle(cornerRadius: 7, style: .continuous)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(selected && TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color.clear)
+                        .stroke(selected && TokenStepThemeRuntime.isCinematic ? Color.tokenHairlineStrong : Color.clear)
                 )
                 .shadow(color: selected ? Color.tokenShadow : .clear, radius: 3, y: 1)
         }

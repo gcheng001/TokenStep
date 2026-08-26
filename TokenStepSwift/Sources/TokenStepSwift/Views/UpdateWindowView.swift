@@ -21,6 +21,8 @@ struct UpdateWindowView: View {
         .overlay {
             if TokenStepThemeRuntime.isVoyage {
                 VoyageWindowFrame(inset: 8)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarWindowFrame(inset: 8)
             }
         }
         .environment(\.colorScheme, appState.settings.theme.colorScheme)
@@ -121,6 +123,14 @@ struct UpdateWindowView: View {
                     }
                 }
                 .frame(height: 8)
+            }
+            .overlay(alignment: .trailing) {
+                if TokenStepThemeRuntime.isInterstellar {
+                    InterstellarEventHorizonEmblem()
+                        .frame(width: 72, height: 24)
+                        .offset(y: 12)
+                        .opacity(0.55)
+                }
             }
         }
     }

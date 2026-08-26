@@ -43,7 +43,9 @@ struct TokenStepBackdrop: View {
     var body: some View {
         ZStack {
             Color.tokenCanvas
-            if TokenStepThemeRuntime.isVoyage {
+            if TokenStepThemeRuntime.isInterstellar {
+                InterstellarBackdrop(role: role)
+            } else if TokenStepThemeRuntime.isVoyage {
                 VoyageBackdropAtmosphere(role: role)
             } else {
                 LinearGradient(
@@ -65,7 +67,9 @@ struct TokenStepMark: View {
     var size: CGFloat = 48
 
     var body: some View {
-        if let icon = TokenStepAppIconImage.image {
+        if TokenStepThemeRuntime.isInterstellar {
+            InterstellarTokenStepMark(size: size)
+        } else if let icon = TokenStepAppIconImage.image {
             Image(nsImage: icon)
                 .resizable()
                 .interpolation(.high)
@@ -202,7 +206,7 @@ struct UsageRecalibrationNotice: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 11)
-        .background(Color.tokenSuccess.opacity(TokenStepThemeRuntime.isVoyage ? 0.12 : 0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color.tokenSuccess.opacity(TokenStepThemeRuntime.isCinematic ? 0.12 : 0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .stroke(Color.tokenSuccess.opacity(0.24))
@@ -264,7 +268,7 @@ struct TokenCard<Content: View>: View {
             .background {
                 ZStack {
                     shape.fill(Color.tokenSurface)
-                    if TokenStepThemeRuntime.isVoyage {
+                    if TokenStepThemeRuntime.isCinematic {
                         LinearGradient(
                             colors: [
                                 Color.tokenGreen.opacity(0.055),
@@ -283,6 +287,8 @@ struct TokenCard<Content: View>: View {
                     shape.stroke(Color.tokenHairline)
                     if TokenStepThemeRuntime.isVoyage {
                         VoyageCardOrnament(cornerRadius: 24)
+                    } else if TokenStepThemeRuntime.isInterstellar {
+                        InterstellarCardOrnament(cornerRadius: 24)
                     }
                 }
             }
@@ -724,7 +730,7 @@ func contributionColor(tokens: Int, goal: Int) -> Color {
 }
 
 func tokenToolColor(_ tool: String) -> Color {
-    if TokenStepThemeRuntime.theme == .voyage {
+    if TokenStepThemeRuntime.isCinematic {
         let value = tool.lowercased()
         let palette = TokenStepThemeRuntime.palette
         if value.contains("codex") { return palette.activity4.color }

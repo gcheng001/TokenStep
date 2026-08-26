@@ -14,9 +14,12 @@ struct VoyageInterfaceRender {
         let chapter = ProcessInfo.processInfo.environment["TOKENSTEP_ODYSSEY_CHAPTER"]
             .flatMap(TokenStepOdysseyChapter.init(rawValue:))
             ?? .directorsCut
-        let theme: TokenStepTheme = ProcessInfo.processInfo.environment["TOKENSTEP_THEME_PACK"] == "classic"
-            ? .green
-            : .voyage
+        let theme: TokenStepTheme
+        switch ProcessInfo.processInfo.environment["TOKENSTEP_THEME_PACK"] {
+        case "classic": theme = .green
+        case "interstellar": theme = .eventHorizon
+        default: theme = .voyage
+        }
         let settings = fixtureSettings(theme: theme, chapter: chapter)
         renderColorScheme = settings.theme.colorScheme
         try writeJSON(snapshot, to: AppPaths.usageJSON)

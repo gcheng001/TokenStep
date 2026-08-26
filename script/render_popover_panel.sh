@@ -8,7 +8,7 @@ OVERLAY_DIR="$BUILD_DIR/vfs-overlay"
 OVERLAY_FILE="$OVERLAY_DIR/overlay.yaml"
 EMPTY_MODULEMAP="$OVERLAY_DIR/empty.modulemap"
 EXECUTABLE="$BUILD_DIR/popover-panel-render"
-OUTPUT_DIR="${1:-$ROOT_DIR/docs/validation/v0.2.4-popover-theme-packs}"
+OUTPUT_DIR="${1:-$ROOT_DIR/docs/validation/v0.2.7-theme-packs}"
 
 mkdir -p "$BUILD_DIR" "$OVERLAY_DIR" "$OUTPUT_DIR"
 cat > "$EMPTY_MODULEMAP" <<'EOF'
@@ -23,13 +23,15 @@ while IFS= read -r source; do SOURCES+=("$source"); done < <(find "$SWIFT_DIR/So
 
 swiftc -D TOKENSTEP_TESTING -target arm64-apple-macos14.0 -vfsoverlay "$OVERLAY_FILE" -Xcc -ivfsoverlay -Xcc "$OVERLAY_FILE" -parse-as-library "${SOURCES[@]}" "$SWIFT_DIR/Tests/Fixtures/PopoverPanelRender.swift" -o "$EXECUTABLE"
 
-for theme in green voyage; do
-  test_root="$(mktemp -d "${TMPDIR:-/tmp}/tokenstep-popover-v024-${theme}.XXXXXX")"
+for theme in green voyage event_horizon; do
+  test_root="$(mktemp -d "${TMPDIR:-/tmp}/tokenstep-popover-v027-${theme}.XXXXXX")"
   TOKENSTEP_TEST_APP_SUPPORT_ROOT="$test_root/app-support" \
   TOKENSTEP_ICON_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/TokenStepIcon.icns" \
   TOKENSTEP_ODYSSEY_AEGEAN_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey/OdysseyAegeanPopover.png" \
   TOKENSTEP_ODYSSEY_TROJAN_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey/OdysseyTrojanPopover.png" \
   TOKENSTEP_ODYSSEY_ASH_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey/OdysseyAshMarblePopover.png" \
+  TOKENSTEP_INTERSTELLAR_HERO_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/interstellar/InterstellarEventHorizonHero.png" \
+  TOKENSTEP_INTERSTELLAR_QUIET_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/interstellar/InterstellarEventHorizonQuiet.png" \
   TOKENSTEP_ODYSSEY_CHAPTER="${TOKENSTEP_ODYSSEY_CHAPTER:-aegean_mist}" \
   TOKENSTEP_POPOVER_THEME="$theme" \
   TOKENSTEP_POPOVER_RENDER_PATH="$OUTPUT_DIR/${theme}.png" \
@@ -44,6 +46,8 @@ TOKENSTEP_ICON_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/TokenStepIcon.icns" \
 TOKENSTEP_ODYSSEY_AEGEAN_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey/OdysseyAegeanPopover.png" \
 TOKENSTEP_ODYSSEY_TROJAN_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey/OdysseyTrojanPopover.png" \
 TOKENSTEP_ODYSSEY_ASH_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey/OdysseyAshMarblePopover.png" \
+TOKENSTEP_INTERSTELLAR_HERO_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/interstellar/InterstellarEventHorizonHero.png" \
+TOKENSTEP_INTERSTELLAR_QUIET_ART_PATH="$ROOT_DIR/TokenUsageMenuApp/assets/interstellar/InterstellarEventHorizonQuiet.png" \
 TOKENSTEP_ODYSSEY_CHAPTER="${TOKENSTEP_ODYSSEY_CHAPTER:-aegean_mist}" \
 TOKENSTEP_POPOVER_THEME="voyage" \
 TOKENSTEP_POPOVER_RANK="hidden" \

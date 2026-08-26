@@ -104,6 +104,22 @@ final class SettingsMigrationTests: XCTestCase {
         XCTAssertEqual(decoded.odysseyChapter, .ashMarble)
     }
 
+    func testInterstellarThemeRoundTripsAsDedicatedThemePack() throws {
+        var settings = TokenStepSettings.defaults
+        settings.theme = .eventHorizon
+        settings.classicTheme = .ocean
+
+        let decoded = try JSONDecoder().decode(
+            TokenStepSettings.self,
+            from: JSONEncoder().encode(settings)
+        )
+
+        XCTAssertEqual(decoded.theme, .eventHorizon)
+        XCTAssertEqual(decoded.themePack, .interstellar)
+        XCTAssertEqual(decoded.classicTheme, .ocean)
+        XCTAssertEqual(decoded.activeThemeTitle, L("引力边界"))
+    }
+
     func testCursorFlagStaysInSyncWithProviderSet() {
         var settings = TokenStepSettings.defaults
         settings.setQuotaProvider(.cursor, enabled: true)

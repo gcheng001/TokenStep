@@ -90,7 +90,7 @@ struct TokenIslandRingView: View {
 
             Text(TokenStepFormat.tokens(tokens, compact: true, language: language))
                 .font(.system(size: 13, weight: .heavy, design: .rounded))
-                .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white)
+                .foregroundStyle(TokenStepThemeRuntime.isCinematic ? Color.tokenInk : Color.white)
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.74)
@@ -101,18 +101,23 @@ struct TokenIslandRingView: View {
         .background {
             ZStack {
                 Color.black
-                if TokenStepThemeRuntime.isVoyage {
+                if TokenStepThemeRuntime.isCinematic {
                     LinearGradient(
                         colors: [Color.tokenCanvas, Color.tokenGreen.opacity(0.16), Color.tokenCanvas],
                         startPoint: .leading,
                         endPoint: .trailing
                     )
                 }
+                if TokenStepThemeRuntime.isInterstellar {
+                    InterstellarEventHorizonEmblem()
+                        .padding(.horizontal, 5)
+                        .opacity(0.42)
+                }
             }
         }
         .clipShape(Capsule())
-        .overlay(Capsule().stroke(TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color.clear))
-        .shadow(color: TokenStepThemeRuntime.isVoyage ? Color.tokenGreen.opacity(0.16) : .clear, radius: 8)
+        .overlay(Capsule().stroke(TokenStepThemeRuntime.isCinematic ? Color.tokenHairlineStrong : Color.clear))
+        .shadow(color: TokenStepThemeRuntime.isCinematic ? Color.tokenGreen.opacity(0.16) : .clear, radius: 8)
         .id("\(theme.id)-\(language.resolved.id)")
     }
 }
@@ -191,8 +196,15 @@ private struct TokenIslandExpandedView: View {
 
     private var ring: some View {
         ZStack {
-            if TokenStepThemeRuntime.theme == .voyage {
+            if TokenStepThemeRuntime.isVoyage {
                 VoyageBowProgressView(progress: lap.currentLapProgress, lineWidth: 9, color: lap.ringColor)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                ProgressRingView(progress: lap.currentLapProgress, lineWidth: 9, color: lap.ringColor)
+                    .overlay {
+                        InterstellarEventHorizonEmblem()
+                            .padding(18)
+                            .opacity(0.48)
+                    }
             } else {
                 ProgressRingView(progress: lap.currentLapProgress, lineWidth: 9, color: lap.ringColor)
             }
@@ -236,6 +248,8 @@ private struct TokenIslandExpandedSurface<Content: View>: View {
                     shape.stroke(Color.tokenHairlineStrong)
                     if TokenStepThemeRuntime.isVoyage {
                         VoyageCardOrnament(cornerRadius: TokenIslandMetrics.expandedCornerRadius)
+                    } else if TokenStepThemeRuntime.isInterstellar {
+                        InterstellarCardOrnament(cornerRadius: TokenIslandMetrics.expandedCornerRadius)
                     }
                 }
             }
@@ -259,6 +273,8 @@ private struct TokenIslandExpandedBackground: View {
             )
             if TokenStepThemeRuntime.isVoyage {
                 VoyageBackdropAtmosphere(role: .island)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarBackdrop(role: .island)
             }
         }
     }

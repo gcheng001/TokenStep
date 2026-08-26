@@ -22,7 +22,8 @@ EXECUTABLE="$BUILD_DIR/$PRODUCT_NAME"
 HELPER_EXECUTABLE="$BUILD_DIR/$HELPER_NAME"
 ICON_FILE="$ROOT_DIR/TokenUsageMenuApp/assets/TokenStepIcon.icns"
 ODYSSEY_ASSET_DIR="$ROOT_DIR/TokenUsageMenuApp/assets/odyssey"
-VERSION="${TOKENSTEP_VERSION:-0.2.6}"
+INTERSTELLAR_ASSET_DIR="$ROOT_DIR/TokenUsageMenuApp/assets/interstellar"
+VERSION="${TOKENSTEP_VERSION:-0.2.7}"
 LAUNCH=true
 VERIFY=false
 
@@ -127,6 +128,9 @@ if [ -f "$ICON_FILE" ]; then
 fi
 if [ -d "$ODYSSEY_ASSET_DIR" ]; then
   cp "$ODYSSEY_ASSET_DIR"/*.png "$RESOURCES/"
+fi
+if [ -d "$INTERSTELLAR_ASSET_DIR" ]; then
+  cp "$INTERSTELLAR_ASSET_DIR"/*.png "$RESOURCES/"
 fi
 
 cat > "$CONTENTS/Info.plist" <<PLIST

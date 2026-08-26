@@ -38,6 +38,11 @@ struct HistoryView: View {
                         .frame(width: 260, height: 116)
                         .padding(18)
                         .opacity(0.46)
+                } else if TokenStepThemeRuntime.isInterstellar {
+                    InterstellarEventHorizonEmblem()
+                        .frame(width: 260, height: 108)
+                        .padding(18)
+                        .opacity(0.38)
                 }
             }
 

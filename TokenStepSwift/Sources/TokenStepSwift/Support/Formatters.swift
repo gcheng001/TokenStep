@@ -109,44 +109,44 @@ extension Color {
     static var tokenGreen: Color { TokenStepThemeRuntime.palette.accent.color }
     static var tokenGreenDark: Color { TokenStepThemeRuntime.palette.accentDark.color }
     static var tokenToggleTint: Color {
-        TokenStepThemeRuntime.isVoyage ? tokenGreenDark : tokenGreen
+        TokenStepThemeRuntime.isCinematic ? tokenGreenDark : tokenGreen
     }
     static var tokenMint: Color { TokenStepThemeRuntime.palette.accentSoft.color }
     static var tokenTrack: Color { TokenStepThemeRuntime.palette.track.color }
     static var tokenLowActivity: Color { TokenStepThemeRuntime.palette.lowActivity.color }
     static var tokenDivider: Color { TokenStepThemeRuntime.theme.dividerColor }
     static var tokenHairline: Color {
-        TokenStepThemeRuntime.isVoyage
+        TokenStepThemeRuntime.isCinematic
             ? TokenStepThemeRuntime.palette.accentDark.color.opacity(0.22)
             : Color.black.opacity(0.055)
     }
     static var tokenHairlineStrong: Color {
-        TokenStepThemeRuntime.isVoyage
+        TokenStepThemeRuntime.isCinematic
             ? TokenStepThemeRuntime.palette.accent.color.opacity(0.48)
             : Color.black.opacity(0.09)
     }
     static var tokenInnerHighlight: Color {
-        TokenStepThemeRuntime.isVoyage
+        TokenStepThemeRuntime.isCinematic
             ? Color(red: 240 / 255, green: 209 / 255, blue: 156 / 255).opacity(0.08)
             : Color.white.opacity(0.42)
     }
     static var tokenShadow: Color {
-        TokenStepThemeRuntime.isVoyage
+        TokenStepThemeRuntime.isCinematic
             ? Color.black.opacity(0.34)
             : Color.black.opacity(0.055)
     }
     static var tokenActionText: Color {
-        TokenStepThemeRuntime.isVoyage
+        TokenStepThemeRuntime.isCinematic
             ? Color(red: 22 / 255, green: 18 / 255, blue: 14 / 255)
             : Color.white
     }
     static var tokenMutedFill: Color {
-        TokenStepThemeRuntime.isVoyage
+        TokenStepThemeRuntime.isCinematic
             ? TokenStepThemeRuntime.palette.track.color.opacity(0.52)
             : TokenStepThemeRuntime.palette.track.color.opacity(0.42)
     }
     static var tokenWarning: Color {
-        TokenStepThemeRuntime.isVoyage
+        TokenStepThemeRuntime.isCinematic
             ? Color(red: 218 / 255, green: 139 / 255, blue: 67 / 255)
             : Color.orange
     }

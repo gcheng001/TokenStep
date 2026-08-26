@@ -88,7 +88,7 @@ struct TodayAgentWorkCard: View {
                 value: "\(selectedActiveHours)/\(period.maximumHours)",
                 detail: AgentWorkCopy.recordedHourDetail,
                 symbol: "clock.fill",
-                color: TokenStepThemeRuntime.isVoyage
+                color: TokenStepThemeRuntime.isCinematic
                     ? TokenStepThemeRuntime.palette.activity2.color
                     : Color(red: 0.20, green: 0.52, blue: 0.92)
             )
@@ -97,7 +97,7 @@ struct TodayAgentWorkCard: View {
                 value: TokenStepFormat.tokens(selectedSevenDayAverage, compact: true),
                 detail: AgentWorkCopy.calendarDayAverage,
                 symbol: "calendar.badge.clock",
-                color: TokenStepThemeRuntime.isVoyage
+                color: TokenStepThemeRuntime.isCinematic
                     ? TokenStepThemeRuntime.palette.activity3.color
                     : Color(red: 0.50, green: 0.28, blue: 0.92)
             )

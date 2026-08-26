@@ -259,18 +259,22 @@ struct TokenStepBrandLockup: View {
         HStack(spacing: max(8, markSize * 0.30)) {
             TokenStepMark(size: markSize)
 
-            VStack(alignment: .leading, spacing: TokenStepThemeRuntime.isVoyage && showsEdition ? 1 : 0) {
+            VStack(alignment: .leading, spacing: TokenStepThemeRuntime.isCinematic && showsEdition ? 1 : 0) {
                 Text("TokenStep")
                     .font(.system(size: titleSize, weight: .heavy, design: .rounded))
                     .foregroundStyle(Color.tokenInk)
-                    .tracking(TokenStepThemeRuntime.isVoyage ? 0.2 : 0)
+                    .tracking(TokenStepThemeRuntime.isCinematic ? 0.2 : 0)
 
-                if TokenStepThemeRuntime.isVoyage && showsEdition {
+                if TokenStepThemeRuntime.isCinematic && showsEdition {
                     HStack(spacing: 5) {
                         Rectangle()
                             .fill(Color.tokenGreen)
                             .frame(width: 12, height: 1)
-                        Text(TokenStepThemeRuntime.odysseyChapter.editionLabel)
+                        Text(
+                            TokenStepThemeRuntime.isInterstellar
+                                ? "GRAVITY · EVENT HORIZON"
+                                : TokenStepThemeRuntime.odysseyChapter.editionLabel
+                        )
                             .font(.system(size: max(7, titleSize * 0.47), weight: .bold, design: .serif))
                             .tracking(1.35)
                             .foregroundStyle(Color.tokenGreenDark.opacity(0.84))

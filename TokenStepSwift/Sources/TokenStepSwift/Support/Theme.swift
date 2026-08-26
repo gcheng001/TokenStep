@@ -54,6 +54,7 @@ struct TokenStepThemePalette {
 enum TokenStepThemePack: String, CaseIterable, Identifiable, Codable {
     case classic
     case odyssey
+    case interstellar
 
     var id: String { rawValue }
 
@@ -61,6 +62,7 @@ enum TokenStepThemePack: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .classic: return L("经典")
         case .odyssey: return L("奥德赛")
+        case .interstellar: return L("引力边界")
         }
     }
 
@@ -68,6 +70,7 @@ enum TokenStepThemePack: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .classic: return L("原版 TokenStep")
         case .odyssey: return L("冷雾 · 骨金 · 火星")
+        case .interstellar: return L("事件视界 · 象牙光")
         }
     }
 }
@@ -201,6 +204,7 @@ enum TokenStepTheme: String, CaseIterable, Identifiable, Codable {
     case amber
     case graphite
     case voyage
+    case eventHorizon = "event_horizon"
 
     static let classicCases: [TokenStepTheme] = [.green, .ocean, .violet, .amber, .graphite]
 
@@ -214,6 +218,7 @@ enum TokenStepTheme: String, CaseIterable, Identifiable, Codable {
         case .amber: return L("琥珀")
         case .graphite: return L("石墨")
         case .voyage: return L("奥德赛")
+        case .eventHorizon: return L("引力边界")
         }
     }
 
@@ -225,23 +230,34 @@ enum TokenStepTheme: String, CaseIterable, Identifiable, Codable {
         case .amber: return L("温暖")
         case .graphite: return L("专注")
         case .voyage: return L("主题皮肤包")
+        case .eventHorizon: return L("主题皮肤包")
         }
     }
 
     var colorScheme: ColorScheme {
-        self == .voyage ? .dark : .light
+        self == .voyage || self == .eventHorizon ? .dark : .light
     }
 
     var inkColor: Color {
-        self == .voyage
-            ? Color(red: 231 / 255, green: 221 / 255, blue: 200 / 255)
-            : Color(red: 31 / 255, green: 41 / 255, blue: 55 / 255)
+        switch self {
+        case .voyage:
+            return Color(red: 231 / 255, green: 221 / 255, blue: 200 / 255)
+        case .eventHorizon:
+            return Color(red: 244 / 255, green: 239 / 255, blue: 226 / 255)
+        default:
+            return Color(red: 31 / 255, green: 41 / 255, blue: 55 / 255)
+        }
     }
 
     var dividerColor: Color {
-        self == .voyage
-            ? Color(red: 116 / 255, green: 82 / 255, blue: 49 / 255).opacity(0.58)
-            : Color.black.opacity(0.06)
+        switch self {
+        case .voyage:
+            return Color(red: 116 / 255, green: 82 / 255, blue: 49 / 255).opacity(0.58)
+        case .eventHorizon:
+            return Color(red: 194 / 255, green: 177 / 255, blue: 143 / 255).opacity(0.34)
+        default:
+            return Color.black.opacity(0.06)
+        }
     }
 
     var palette: TokenStepThemePalette {
@@ -338,6 +354,24 @@ enum TokenStepTheme: String, CaseIterable, Identifiable, Codable {
             )
         case .voyage:
             return TokenStepOdysseyChapter.directorsCut.palette
+        case .eventHorizon:
+            return TokenStepThemePalette(
+                canvas: .init(red: 5 / 255, green: 8 / 255, blue: 13 / 255),
+                surface: .init(red: 18 / 255, green: 21 / 255, blue: 25 / 255),
+                accent: .init(red: 224 / 255, green: 207 / 255, blue: 169 / 255),
+                accentDark: .init(red: 251 / 255, green: 241 / 255, blue: 213 / 255),
+                accentSoft: .init(red: 87 / 255, green: 80 / 255, blue: 67 / 255),
+                track: .init(red: 47 / 255, green: 49 / 255, blue: 51 / 255),
+                lowActivity: .init(red: 58 / 255, green: 58 / 255, blue: 57 / 255),
+                activity1: .init(red: 101 / 255, green: 96 / 255, blue: 86 / 255),
+                activity2: .init(red: 148 / 255, green: 137 / 255, blue: 113 / 255),
+                activity3: .init(red: 199 / 255, green: 182 / 255, blue: 146 / 255),
+                activity4: .init(red: 244 / 255, green: 231 / 255, blue: 198 / 255),
+                ring1: .init(red: 224 / 255, green: 207 / 255, blue: 169 / 255),
+                ring2: .init(red: 236 / 255, green: 220 / 255, blue: 183 / 255),
+                ring3: .init(red: 247 / 255, green: 234 / 255, blue: 204 / 255),
+                ring4: .init(red: 255 / 255, green: 247 / 255, blue: 224 / 255)
+            )
         }
     }
 }
@@ -351,9 +385,15 @@ enum TokenStepThemeRuntime {
         isOdyssey ? activeOdysseyChapter.palette : activeTheme.palette
     }
     static var isOdyssey: Bool { activeTheme == .voyage }
+    static var isInterstellar: Bool { activeTheme == .eventHorizon }
+    static var isCinematic: Bool { isOdyssey || isInterstellar }
     static var isVoyage: Bool { isOdyssey }
     static var odysseyChapter: TokenStepOdysseyChapter { activeOdysseyChapter }
-    static var themePack: TokenStepThemePack { isOdyssey ? .odyssey : .classic }
+    static var themePack: TokenStepThemePack {
+        if isOdyssey { return .odyssey }
+        if isInterstellar { return .interstellar }
+        return .classic
+    }
 
     static func apply(
         _ theme: TokenStepTheme,

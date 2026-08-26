@@ -858,13 +858,18 @@ struct TokenStepSettings: Codable {
     }
 
     var themePack: TokenStepThemePack {
-        theme == .voyage ? .odyssey : .classic
+        switch theme {
+        case .voyage: return .odyssey
+        case .eventHorizon: return .interstellar
+        default: return .classic
+        }
     }
 
     var activeThemeTitle: String {
         switch themePack {
         case .classic: return classicTheme.title
         case .odyssey: return odysseyChapter.title
+        case .interstellar: return L("引力边界")
         }
     }
 
@@ -937,7 +942,7 @@ struct TokenStepSettings: Codable {
         self.refreshIntervalSeconds = refreshIntervalSeconds
         self.historyDays = historyDays
         self.theme = theme
-        let fallbackClassicTheme = theme == .voyage ? TokenStepTheme.green : theme
+        let fallbackClassicTheme = TokenStepTheme.classicCases.contains(theme) ? theme : .green
         let requestedClassicTheme = classicTheme ?? fallbackClassicTheme
         self.classicTheme = TokenStepTheme.classicCases.contains(requestedClassicTheme)
             ? requestedClassicTheme

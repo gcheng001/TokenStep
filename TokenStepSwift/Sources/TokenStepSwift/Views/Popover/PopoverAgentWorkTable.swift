@@ -8,7 +8,7 @@ struct PopoverAgentWorkTable: View {
     }
 
     var body: some View {
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         return VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text(L("Agent 用量"))
@@ -44,7 +44,7 @@ struct PopoverAgentWorkTable: View {
     }
 
     private var header: some View {
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         return HStack(spacing: 10) {
             Text(L("来源")).frame(maxWidth: .infinity, alignment: .leading)
             Text(L("Token")).frame(width: voyage ? 88 : 72, alignment: .trailing)
@@ -54,7 +54,7 @@ struct PopoverAgentWorkTable: View {
     }
 
     private func rowView(_ row: AgentWorkSource) -> some View {
-        let voyage = TokenStepThemeRuntime.isVoyage
+        let voyage = TokenStepThemeRuntime.isCinematic
         return HStack(alignment: .center, spacing: 10) {
             HStack(alignment: .center, spacing: 6) {
                 Circle()

@@ -273,21 +273,21 @@ struct PopoverTokenRankCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(L("全榜今日消耗"))
                         .font(.system(size: 10.5, weight: .heavy))
-                        .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.62) : Color.white.opacity(0.62))
+                        .foregroundStyle(TokenStepThemeRuntime.isCinematic ? Color.tokenInk.opacity(0.62) : Color.white.opacity(0.62))
                     Text(totalRankTokensText)
                         .font(.system(size: 22, weight: .heavy, design: .rounded))
-                        .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk : Color.white)
+                        .foregroundStyle(TokenStepThemeRuntime.isCinematic ? Color.tokenInk : Color.white)
                         .monospacedDigit()
                     if let count = appState.tokenRank?.totalRankedUsers, count > 0 {
                         Text(LFormat("%d 人参榜", count))
                             .font(.caption2.weight(.bold))
-                            .foregroundStyle(TokenStepThemeRuntime.isVoyage ? Color.tokenInk.opacity(0.62) : Color.white.opacity(0.62))
+                            .foregroundStyle(TokenStepThemeRuntime.isCinematic ? Color.tokenInk.opacity(0.62) : Color.white.opacity(0.62))
                     }
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(
-                    TokenStepThemeRuntime.isVoyage
+                    TokenStepThemeRuntime.isCinematic
                         ? Color.tokenGreen.opacity(0.11)
                         : Color(red: 0.12, green: 0.18, blue: 0.14),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)

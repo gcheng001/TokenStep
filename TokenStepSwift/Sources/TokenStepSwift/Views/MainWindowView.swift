@@ -81,6 +81,8 @@ struct MainWindowView: View {
         .overlay {
             if TokenStepThemeRuntime.isVoyage {
                 VoyageWindowFrame(inset: 8)
+            } else if TokenStepThemeRuntime.isInterstellar {
+                InterstellarWindowFrame(inset: 8)
             }
         }
         .environment(\.colorScheme, appState.settings.theme.colorScheme)
@@ -163,7 +165,7 @@ struct MainWindowView: View {
         .background {
             ZStack {
                 Color.tokenSurface.opacity(0.94)
-                if TokenStepThemeRuntime.isVoyage {
+                if TokenStepThemeRuntime.isCinematic {
                     LinearGradient(
                         colors: [Color.tokenGreen.opacity(0.085), Color.clear, Color.tokenGreenDark.opacity(0.03)],
                         startPoint: .leading,
@@ -291,13 +293,13 @@ private struct DashboardTabButton: View {
                 .frame(height: 28)
                 .background(
                     selected
-                        ? (TokenStepThemeRuntime.isVoyage ? Color.tokenGreen.opacity(0.16) : Color.tokenSurface)
+                        ? (TokenStepThemeRuntime.isCinematic ? Color.tokenGreen.opacity(0.16) : Color.tokenSurface)
                         : Color.clear,
                     in: RoundedRectangle(cornerRadius: 7, style: .continuous)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(selected && TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color.clear)
+                        .stroke(selected && TokenStepThemeRuntime.isCinematic ? Color.tokenHairlineStrong : Color.clear)
                 )
                 .shadow(color: selected ? Color.tokenShadow : .clear, radius: 3, y: 1)
         }

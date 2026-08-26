@@ -6,7 +6,7 @@ struct PopoverFooterView: View {
 
     var body: some View {
         Group {
-            if TokenStepThemeRuntime.isVoyage {
+            if TokenStepThemeRuntime.isCinematic {
                 odysseyFooter
             } else {
                 classicFooter

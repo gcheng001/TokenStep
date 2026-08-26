@@ -22,7 +22,7 @@ TokenStep 是一个 macOS 菜单栏 App，用来本地统计你在 Codex、Claud
 
 下载最新版 DMG，打开后把 `TokenStep.app` 拖进「应用程序」即可使用：
 
-[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.6.dmg)
+[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.7.dmg)
 
 也可以从 Release 页面查看所有版本：
 
@@ -31,6 +31,23 @@ TokenStep 是一个 macOS 菜单栏 App，用来本地统计你在 Codex、Claud
 TokenStep 已使用 Developer ID 签名并通过 Apple 公证。首次打开时，macOS 可能会出现标准确认弹窗，这是正常现象。
 
 Windows版本由十七做了移植，欢迎大家前往使用：https://github.com/canyexuanfan/TokenStep-Windows/releases 
+
+## 0.2.7 重大更新：引力边界黑洞主题包
+
+0.2.7 新增第三套完整皮肤包「引力边界」。它不是给首页换一张壁纸，而是把近距事件视界、象牙白吸积盘和低速引力光流接进 TokenStep 的整套界面。
+
+<p align="center">
+  <img src="docs/images/tokenstep-0.2.7-event-horizon-popover.jpg" alt="TokenStep 0.2.7 引力边界黑洞主题包浮层" width="900" />
+</p>
+
+- **第三套主题皮肤包**：在 `设置 → 通用 → 主题皮肤包` 中，可在经典、奥德赛和引力边界之间随时切换。
+- **黑洞是第一视觉层**：巨大事件视界占据左上，象牙白吸积盘横贯界面，并保留上方透镜弧和更暗的下方反转弧。
+- **全界面统一换肤**：菜单栏浮层、今日、历史、隐私、设置、更新窗口、Token Island 和两类分享卡全部覆盖。
+- **低成本动态光流**：吸积盘有缓慢相位漂移和轻微呼吸；窗口失焦、截图和 macOS“减少动态效果”状态会自动暂停，最高 24 fps。
+- **原创应用内标记**：主题启用时，TokenStep 的应用内 Logo 会切换为事件视界与吸积盘标记。
+- **更新检查更稳**：GitHub API 被限流时自动使用非 API 的最新 Release 通道；手动检查增加 10 秒防连点，并在双通道都失败时显示可理解的限流恢复时间。
+
+主题使用原创生成背景和通用黑洞科学结构，不包含电影 Logo、演员、剧照、飞船或第三方水印。完整说明见 [0.2.7 发布说明](docs/RELEASE_NOTES_0.2.7.md) 与 [引力边界主题实现说明](docs/INTERSTELLAR_THEME_PACK_0.2.7.md)。
 
 ## 0.2.6 重大更新：检查更新后立即进入安装闭环
 
@@ -85,7 +102,7 @@ TokenStep 第一次从“更换配色”升级为完整的**主题皮肤包系�
 - 新增奥德赛弓箭阶梯 Logo；用量采用骨金、冷金或余烬橙，绿色只保留给同步成功等状态反馈。
 - 关闭排行榜后浮层会自动收短，多来源额度则使用紧凑布局完整展示。
 
-打开 `设置 → 通用 → 主题皮肤包` 即可切换。完整说明见 [0.2.4 发布说明](docs/RELEASE_NOTES_0.2.4.md)，或直接[下载已签名并通过 Apple 公证的最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.6.dmg)。
+打开 `设置 → 通用 → 主题皮肤包` 即可切换。完整说明见 [0.2.4 发布说明](docs/RELEASE_NOTES_0.2.4.md)，或直接[下载已签名并通过 Apple 公证的最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.7.dmg)。
 
 ## TokenStep 适合谁？
 
@@ -112,7 +129,7 @@ TokenStep 适合这些人：
 - 每日目标可设置，默认每天一个亿。
 - 打开面板时按设置的新鲜度刷新；后台在接电时最低 15 分钟、电池或低电量模式下最低 30 分钟刷新，并跳过未变化的数据。
 - 开机启动，可在设置里关闭。
-- 主题皮肤包：可随时切回五种经典配色，也可使用奥德赛的导演剪辑、爱琴海冷雾、特洛伊火海与灰烬神像四个视觉篇章。
+- 主题皮肤包：可随时切换经典、奥德赛和引力边界；引力边界覆盖全界面并带低成本黑洞光流动效。
 - 一键截图分享当前页面。
 - 一键生成「昨日 AI 节奏」分享卡，展示 24 小时使用波形、峰值时段和节奏标签。
 - Codex / Claude Code 剩余额度可在设置中打开，默认关闭。
@@ -144,7 +161,7 @@ TokenStep 默认只做本地统计。
 
 ## 安装方式
 
-1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.6.dmg)。
+1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.7.dmg)。
 2. 打开 DMG。
 3. 把 `TokenStep.app` 拖到「应用程序」。
 4. 启动 TokenStep。
@@ -204,7 +221,7 @@ TokenStepSwift/dist/TokenStep.app
 Developer ID 签名：
 
 ```bash
-TOKENSTEP_VERSION=0.2.6 \
+TOKENSTEP_VERSION=0.2.7 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 ./script/package_release.sh
 ```
@@ -212,7 +229,7 @@ CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 签名 + Apple 公证：
 
 ```bash
-TOKENSTEP_VERSION=0.2.6 \
+TOKENSTEP_VERSION=0.2.7 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 TOKENSTEP_NOTARY_PROFILE="tokenstep-notary" \
 ./script/package_release.sh --notarize
@@ -227,7 +244,7 @@ release/TokenStep-<version>.dmg
 
 维护者说明见 [docs/RELEASE.md](docs/RELEASE.md)。
 
-0.2.6 发布说明见 [docs/RELEASE_NOTES_0.2.6.md](docs/RELEASE_NOTES_0.2.6.md)；0.2.5 动效、模型用量与更新提醒说明见 [docs/RELEASE_NOTES_0.2.5.md](docs/RELEASE_NOTES_0.2.5.md)；0.2.4 主题包实现与验收说明见 [docs/ODYSSEY_THEME_PACK_0.2.4.md](docs/ODYSSEY_THEME_PACK_0.2.4.md)。
+0.2.7 发布说明见 [docs/RELEASE_NOTES_0.2.7.md](docs/RELEASE_NOTES_0.2.7.md)；引力边界实现说明见 [docs/INTERSTELLAR_THEME_PACK_0.2.7.md](docs/INTERSTELLAR_THEME_PACK_0.2.7.md)；0.2.6 更新闭环说明见 [docs/RELEASE_NOTES_0.2.6.md](docs/RELEASE_NOTES_0.2.6.md)；0.2.4 奥德赛主题包说明见 [docs/ODYSSEY_THEME_PACK_0.2.4.md](docs/ODYSSEY_THEME_PACK_0.2.4.md)。
 
 ## 开源协议
 

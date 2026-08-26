@@ -13,9 +13,12 @@ struct PopoverPanelRender {
             NSApp.applicationIconImage = icon
         }
 
-        let theme = ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_THEME"] == "voyage"
-            ? TokenStepTheme.voyage
-            : TokenStepTheme.green
+        let theme: TokenStepTheme
+        switch ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_THEME"] {
+        case "voyage": theme = .voyage
+        case "event_horizon": theme = .eventHorizon
+        default: theme = .green
+        }
         let chapter = ProcessInfo.processInfo.environment["TOKENSTEP_ODYSSEY_CHAPTER"]
             .flatMap(TokenStepOdysseyChapter.init(rawValue:))
             ?? .aegeanMist
@@ -47,7 +50,7 @@ struct PopoverPanelRender {
 
         let output = URL(
             fileURLWithPath: ProcessInfo.processInfo.environment["TOKENSTEP_POPOVER_RENDER_PATH"]
-                ?? "/tmp/tokenstep-popover-v0.2.4.png"
+                ?? "/tmp/tokenstep-popover-v0.2.7.png"
         )
         try FileManager.default.createDirectory(
             at: output.deletingLastPathComponent(),
@@ -75,7 +78,7 @@ struct PopoverPanelRender {
                 NSLocalizedDescriptionKey: "Unexpected render size: \(bitmap.pixelsWide)x\(bitmap.pixelsHigh)"
             ])
         }
-        print("v0.2.5-a2: \(bitmap.pixelsWide)x\(bitmap.pixelsHigh) -> \(output.path)")
+        print("v0.2.7: \(bitmap.pixelsWide)x\(bitmap.pixelsHigh) -> \(output.path)")
     }
 
     private static func validateIsolatedAppSupport() throws {

@@ -24,6 +24,11 @@ struct PrivacyView: View {
                         .frame(width: 132, height: 104)
                         .padding(14)
                         .opacity(0.48)
+                } else if TokenStepThemeRuntime.isInterstellar {
+                    InterstellarEventHorizonEmblem()
+                        .frame(width: 150, height: 78)
+                        .padding(18)
+                        .opacity(0.44)
                 }
             }
 
@@ -67,7 +72,7 @@ struct PrivacyView: View {
                 }
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(TokenStepThemeRuntime.isVoyage ? Color.tokenHairlineStrong : Color(red: 0.42, green: 0.36, blue: 0.82).opacity(0.16))
+                        .stroke(TokenStepThemeRuntime.isCinematic ? Color.tokenHairlineStrong : Color(red: 0.42, green: 0.36, blue: 0.82).opacity(0.16))
                 )
             }
 

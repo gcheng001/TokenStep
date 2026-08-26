@@ -121,7 +121,7 @@ struct PopoverModelUsageSection: View {
                 }
             }
         }
-        .padding(.horizontal, TokenStepThemeRuntime.isVoyage ? 14 : 12)
+        .padding(.horizontal, TokenStepThemeRuntime.isCinematic ? 14 : 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .topLeading)
     }
@@ -129,7 +129,7 @@ struct PopoverModelUsageSection: View {
     private func header(mismatch: Bool) -> some View {
         HStack(spacing: 7) {
             Text(L("今日模型"))
-                .font((TokenStepThemeRuntime.isVoyage ? Font.callout : Font.caption).weight(.heavy))
+                .font((TokenStepThemeRuntime.isCinematic ? Font.callout : Font.caption).weight(.heavy))
                 .foregroundStyle(Color.tokenInk)
             Spacer(minLength: 4)
             if mismatch {
@@ -178,7 +178,7 @@ struct PopoverModelUsageSection: View {
                     .frame(width: 44, alignment: .trailing)
                     .monospacedDigit()
             }
-            .font(.system(size: TokenStepThemeRuntime.isVoyage ? 10.5 : 10, weight: .semibold))
+            .font(.system(size: TokenStepThemeRuntime.isCinematic ? 10.5 : 10, weight: .semibold))
             .foregroundStyle(Color.tokenInk.opacity(0.82))
 
             GeometryReader { proxy in
@@ -212,7 +212,7 @@ struct PopoverModelUsageSection: View {
         guard let slot = row.colorSlot else {
             return Color.secondary.opacity(0.72)
         }
-        if TokenStepThemeRuntime.isVoyage {
+        if TokenStepThemeRuntime.isCinematic {
             switch slot {
             case 0: return .tokenGreen
             case 1: return TokenStepThemeRuntime.palette.activity3.color

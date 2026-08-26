@@ -8,7 +8,7 @@ OVERLAY_DIR="$BUILD_DIR/vfs-overlay"
 OVERLAY_FILE="$OVERLAY_DIR/overlay.yaml"
 EMPTY_MODULEMAP="$OVERLAY_DIR/empty.modulemap"
 EXECUTABLE="$BUILD_DIR/voyage-interface-render"
-OUTPUT_DIR="${1:-$ROOT_DIR/docs/validation/v0.2.7-interstellar}"
+OUTPUT_DIR="${1:-$ROOT_DIR/docs/validation/v0.2.8-interstellar}"
 
 mkdir -p "$BUILD_DIR" "$OVERLAY_DIR" "$OUTPUT_DIR"
 cat > "$EMPTY_MODULEMAP" <<'EOF'

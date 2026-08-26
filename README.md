@@ -22,7 +22,7 @@ TokenStep 是一个 macOS 菜单栏 App，用来本地统计你在 Codex、Claud
 
 下载最新版 DMG，打开后把 `TokenStep.app` 拖进「应用程序」即可使用：
 
-[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.7.dmg)
+[下载 TokenStep 最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.8.dmg)
 
 也可以从 Release 页面查看所有版本：
 
@@ -31,6 +31,12 @@ TokenStep 是一个 macOS 菜单栏 App，用来本地统计你在 Codex、Claud
 TokenStep 已使用 Developer ID 签名并通过 Apple 公证。首次打开时，macOS 可能会出现标准确认弹窗，这是正常现象。
 
 Windows版本由十七做了移植，欢迎大家前往使用：https://github.com/canyexuanfan/TokenStep-Windows/releases 
+
+## 0.2.8 更新：引力边界图标精修
+
+0.2.8 精修了「设置 → 通用 → 主题皮肤包」中的引力边界预览图标：黑洞、吸积盘和上下引力透镜弧重新居中并收进图标安全区，同时增加圆角裁切，修复图形穿出卡片边界的问题。
+
+本次只调整主题选择图标，不改变首页、浮层和其他界面的黑洞主视觉，也不改变 Token、金额、额度、排行榜及本地采集口径。完整说明见 [0.2.8 发布说明](docs/RELEASE_NOTES_0.2.8.md)。
 
 ## 0.2.7 重大更新：引力边界黑洞主题包
 
@@ -102,7 +108,7 @@ TokenStep 第一次从“更换配色”升级为完整的**主题皮肤包系�
 - 新增奥德赛弓箭阶梯 Logo；用量采用骨金、冷金或余烬橙，绿色只保留给同步成功等状态反馈。
 - 关闭排行榜后浮层会自动收短，多来源额度则使用紧凑布局完整展示。
 
-打开 `设置 → 通用 → 主题皮肤包` 即可切换。完整说明见 [0.2.4 发布说明](docs/RELEASE_NOTES_0.2.4.md)，或直接[下载已签名并通过 Apple 公证的最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.7.dmg)。
+打开 `设置 → 通用 → 主题皮肤包` 即可切换。完整说明见 [0.2.4 发布说明](docs/RELEASE_NOTES_0.2.4.md)，或直接[下载已签名并通过 Apple 公证的最新版](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.8.dmg)。
 
 ## TokenStep 适合谁？
 
@@ -161,7 +167,7 @@ TokenStep 默认只做本地统计。
 
 ## 安装方式
 
-1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.7.dmg)。
+1. 下载 [TokenStep 最新版 DMG](https://github.com/Backtthefuture/TokenStep/releases/latest/download/TokenStep-0.2.8.dmg)。
 2. 打开 DMG。
 3. 把 `TokenStep.app` 拖到「应用程序」。
 4. 启动 TokenStep。
@@ -221,7 +227,7 @@ TokenStepSwift/dist/TokenStep.app
 Developer ID 签名：
 
 ```bash
-TOKENSTEP_VERSION=0.2.7 \
+TOKENSTEP_VERSION=0.2.8 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 ./script/package_release.sh
 ```
@@ -229,7 +235,7 @@ CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 签名 + Apple 公证：
 
 ```bash
-TOKENSTEP_VERSION=0.2.7 \
+TOKENSTEP_VERSION=0.2.8 \
 CODE_SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
 TOKENSTEP_NOTARY_PROFILE="tokenstep-notary" \
 ./script/package_release.sh --notarize
@@ -244,7 +250,7 @@ release/TokenStep-<version>.dmg
 
 维护者说明见 [docs/RELEASE.md](docs/RELEASE.md)。
 
-0.2.7 发布说明见 [docs/RELEASE_NOTES_0.2.7.md](docs/RELEASE_NOTES_0.2.7.md)；引力边界实现说明见 [docs/INTERSTELLAR_THEME_PACK_0.2.7.md](docs/INTERSTELLAR_THEME_PACK_0.2.7.md)；0.2.6 更新闭环说明见 [docs/RELEASE_NOTES_0.2.6.md](docs/RELEASE_NOTES_0.2.6.md)；0.2.4 奥德赛主题包说明见 [docs/ODYSSEY_THEME_PACK_0.2.4.md](docs/ODYSSEY_THEME_PACK_0.2.4.md)。
+0.2.8 发布说明见 [docs/RELEASE_NOTES_0.2.8.md](docs/RELEASE_NOTES_0.2.8.md)；0.2.7 发布说明见 [docs/RELEASE_NOTES_0.2.7.md](docs/RELEASE_NOTES_0.2.7.md)；引力边界实现说明见 [docs/INTERSTELLAR_THEME_PACK_0.2.7.md](docs/INTERSTELLAR_THEME_PACK_0.2.7.md)；0.2.6 更新闭环说明见 [docs/RELEASE_NOTES_0.2.6.md](docs/RELEASE_NOTES_0.2.6.md)；0.2.4 奥德赛主题包说明见 [docs/ODYSSEY_THEME_PACK_0.2.4.md](docs/ODYSSEY_THEME_PACK_0.2.4.md)。
 
 ## 开源协议
 

@@ -337,29 +337,110 @@ struct InterstellarTokenStepMark: View {
 }
 
 struct InterstellarThemePreview: View {
+    private let tileShape = RoundedRectangle(cornerRadius: 13, style: .continuous)
+    private let warmWhite = Color(red: 1.0, green: 0.97, blue: 0.87)
+    private let champagne = Color(red: 224 / 255, green: 207 / 255, blue: 169 / 255)
+
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 13, style: .continuous)
+            tileShape
                 .fill(
                     LinearGradient(
-                        colors: [Color.black, Color(red: 11 / 255, green: 16 / 255, blue: 24 / 255)],
+                        colors: [
+                            Color(red: 3 / 255, green: 5 / 255, blue: 8 / 255),
+                            Color(red: 11 / 255, green: 16 / 255, blue: 24 / 255)
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
+
             Ellipse()
-                .stroke(Color.tokenGreenDark.opacity(0.88), lineWidth: 3)
-                .frame(width: 50, height: 13)
-                .offset(x: -7)
+                .fill(
+                    RadialGradient(
+                        colors: [champagne.opacity(0.24), champagne.opacity(0.05), Color.clear],
+                        center: .center,
+                        startRadius: 1,
+                        endRadius: 22
+                    )
+                )
+                .frame(width: 46, height: 24)
+
+            Ellipse()
+                .stroke(
+                    LinearGradient(
+                        colors: [champagne.opacity(0.18), warmWhite, champagne.opacity(0.20)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    ),
+                    lineWidth: 1.25
+                )
+                .frame(width: 42, height: 11)
+                .shadow(color: warmWhite.opacity(0.24), radius: 2)
+
+            InterstellarThemeLensingArcs()
+                .stroke(
+                    LinearGradient(
+                        colors: [champagne.opacity(0.34), warmWhite.opacity(0.94), champagne.opacity(0.34)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    ),
+                    style: StrokeStyle(lineWidth: 1.15, lineCap: .round)
+                )
+                .frame(width: 19, height: 28)
+
             Circle()
                 .fill(Color.black)
-                .frame(width: 20, height: 20)
-                .offset(x: -8)
+                .frame(width: 18, height: 18)
+                .overlay(
+                    Circle()
+                        .stroke(champagne.opacity(0.58), lineWidth: 0.75)
+                )
+
             Capsule()
-                .fill(Color.tokenGreenDark)
-                .frame(width: 51, height: 2)
-                .offset(x: 2)
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: champagne.opacity(0.72), location: 0.14),
+                            .init(color: warmWhite, location: 0.50),
+                            .init(color: champagne.opacity(0.72), location: 0.86),
+                            .init(color: .clear, location: 1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 39, height: 1.5)
+                .offset(y: 2.5)
+                .shadow(color: warmWhite.opacity(0.36), radius: 1.4)
         }
-        .overlay(RoundedRectangle(cornerRadius: 13, style: .continuous).stroke(Color.tokenGreen.opacity(0.48)))
+        .clipShape(tileShape)
+        .overlay(tileShape.stroke(champagne.opacity(0.46), lineWidth: 1))
+        .accessibilityHidden(true)
+    }
+}
+
+private struct InterstellarThemeLensingArcs: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        let left = CGPoint(x: rect.minX, y: rect.midY - 1)
+        let right = CGPoint(x: rect.maxX, y: rect.midY - 1)
+
+        path.move(to: left)
+        path.addCurve(
+            to: right,
+            control1: CGPoint(x: rect.minX + rect.width * 0.12, y: rect.minY + rect.height * 0.08),
+            control2: CGPoint(x: rect.maxX - rect.width * 0.12, y: rect.minY + rect.height * 0.08)
+        )
+
+        path.move(to: CGPoint(x: rect.minX, y: rect.midY + 1))
+        path.addCurve(
+            to: CGPoint(x: rect.maxX, y: rect.midY + 1),
+            control1: CGPoint(x: rect.minX + rect.width * 0.12, y: rect.maxY - rect.height * 0.08),
+            control2: CGPoint(x: rect.maxX - rect.width * 0.12, y: rect.maxY - rect.height * 0.08)
+        )
+
+        return path
     }
 }

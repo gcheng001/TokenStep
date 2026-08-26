@@ -120,14 +120,14 @@ struct InterstellarMotionSample: Equatable {
 
     /// Approach travel range over `approachDuration`; free-floating layers ride at 1.7x.
     /// The arc-glued hotspot scales with the plate so it never detaches from the disk.
-    /// The pivot sits at the heart of the baked structure so the hole swells in
-    /// place — edges rush out of frame while the arc crest climbs toward the top,
-    /// which reads as the camera falling in rather than the plate sliding away.
-    /// A gentle brightness swell rides along: closing in on a blazing disk.
+    /// The pivot sits on the black hole itself (upper-left, near the shadow), so the
+    /// dive reads as the camera falling INTO the hole: every feature streams outward
+    /// from that vanishing point, and the right-hand arc — the dominant landmark —
+    /// swells and rushes past the right edge of the frame.
     static let approachScaleRange: CGFloat = 0.36
     static let approachEaseExponent: CGFloat = 1.2
     static let approachBrightnessRange: Double = 0.16
-    static let approachAnchor = UnitPoint(x: 0.46, y: 0.28)
+    static let approachAnchor = UnitPoint(x: 0.30, y: 0.05)
 
     var primaryPhase: CGFloat
     var secondaryPhase: CGFloat

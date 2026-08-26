@@ -1,18 +1,6 @@
 import AppKit
 import SwiftUI
 
-enum InterstellarMotionPolicy {
-    static let preferredFramesPerSecond = 24
-
-    static func shouldAnimate(
-        reduceMotion: Bool,
-        isScreenshotRendering: Bool,
-        isControlActive: Bool
-    ) -> Bool {
-        !reduceMotion && !isScreenshotRendering && isControlActive
-    }
-}
-
 enum InterstellarArtwork {
     private static let hero = load(
         resource: "InterstellarEventHorizonHero",
@@ -44,23 +32,113 @@ enum InterstellarArtwork {
 struct InterstellarBackdrop: View {
     var role: OdysseySurfaceRole = .generic
     var isScreenshotRendering = false
+    /// Lab builds drive every cinematic surface with the lab mode; the popover
+    /// passes its own picker state, other surfaces follow the lab default.
+    var motionMode: InterstellarMotionMode = InterstellarMotionLabConfiguration.initialMode
+    var tokenActivity = 0
+    var manualPulseTrigger = 0
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.controlActiveState) private var controlActiveState
+    @State private var lowPowerMode = TokenStepPowerState.lowPowerModeEnabled
+    @State private var pulseStartedAt: TimeInterval?
+    @State private var sessionStartedAt = Date.timeIntervalSinceReferenceDate
+    @State private var surfaceVisible = false
 
     private var usesQuietArtwork: Bool {
         reduceMotion || [.history, .privacy, .settings, .update].contains(role)
+    }
+
+    private var effectiveMode: InterstellarMotionMode {
+        usesQuietArtwork ? .quiet : motionMode
     }
 
     private var motionEnabled: Bool {
         InterstellarMotionPolicy.shouldAnimate(
             reduceMotion: reduceMotion,
             isScreenshotRendering: isScreenshotRendering,
-            isControlActive: controlActiveState != .inactive
+            isSurfaceVisible: surfaceVisible
         )
     }
 
+    /// Deterministic lab rendering must show the frozen motion frame even
+    /// though the fixture runs in screenshot mode.
+    private var isPreviewRendering: Bool {
+        InterstellarMotionLabConfiguration.previewTime != nil
+    }
+
     var body: some View {
+        backdrop
+            .ignoresSafeArea()
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .background(
+                OdysseySurfaceVisibilityReader(isVisible: $surfaceVisible)
+            )
+            .onAppear {
+                sessionStartedAt = Date.timeIntervalSinceReferenceDate
+                if motionMode == .gravityTide, InterstellarMotionLabConfiguration.isEnabled {
+                    triggerPulse()
+                }
+            }
+        .onChange(of: motionMode) { _, newMode in
+            if newMode == .gravityTide {
+                triggerPulse()
+            }
+        }
+        .onChange(of: tokenActivity) { oldValue, newValue in
+            if newValue > oldValue, motionMode == .gravityTide {
+                triggerPulse()
+            }
+        }
+        .onChange(of: manualPulseTrigger) { _, _ in
+            if motionMode == .gravityTide {
+                triggerPulse()
+            }
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: Notification.Name.NSProcessInfoPowerStateDidChange
+            )
+        ) { _ in
+            lowPowerMode = TokenStepPowerState.lowPowerModeEnabled
+        }
+    }
+
+    @ViewBuilder
+    private var backdrop: some View {
+        if let previewTime = InterstellarMotionLabConfiguration.previewTime {
+            surface(
+                sample: .sample(
+                    at: previewTime,
+                    sessionStartedAt: 0,
+                    pulseStartedAt: InterstellarMotionLabConfiguration.previewPulseStartedAt
+                        ?? pulseStartedAt
+                )
+            )
+        } else {
+            TimelineView(
+                .animation(
+                    minimumInterval: 1 / Double(
+                        InterstellarMotionPolicy.framesPerSecond(
+                            mode: effectiveMode,
+                            lowPowerMode: lowPowerMode
+                        )
+                    ),
+                    paused: !motionEnabled
+                )
+            ) { timeline in
+                surface(
+                    sample: .sample(
+                        at: timeline.date.timeIntervalSinceReferenceDate,
+                        sessionStartedAt: sessionStartedAt,
+                        pulseStartedAt: pulseStartedAt
+                    )
+                )
+            }
+        }
+    }
+
+    private func surface(sample: InterstellarMotionSample) -> some View {
         GeometryReader { proxy in
             ZStack {
                 Color(red: 4 / 255, green: 7 / 255, blue: 12 / 255)
@@ -70,15 +148,27 @@ struct InterstellarBackdrop: View {
                         .resizable()
                         .interpolation(.high)
                         .scaledToFill()
+                        .scaleEffect(plateScale(for: sample), anchor: InterstellarMotionSample.approachAnchor)
+                        .brightness(
+                            plateScale(for: sample) == 1 ? 0 : sample.dollyBrightness
+                        )
                         .frame(width: proxy.size.width, height: proxy.size.height)
                         .clipped()
                 } else {
                     InterstellarFallbackPlate()
                 }
 
-                InterstellarAccretionMotionLayer(isActive: motionEnabled)
-
                 Color.black.opacity(roleVeilOpacity)
+
+                // The hotspot is glued to the baked arc, so it rides the plate
+                // scale exactly; free-floating layers below take the parallax.
+                InterstellarHotspotOrbit(mode: effectiveMode, sample: sample)
+                    .scaleEffect(plateScale(for: sample), anchor: InterstellarMotionSample.approachAnchor)
+                    .opacity(isPreviewRendering || motionEnabled ? 1 : 0)
+
+                InterstellarMotionLayer(mode: effectiveMode, sample: sample)
+                    .scaleEffect(overlayScale(for: sample), anchor: InterstellarMotionSample.approachAnchor)
+                    .opacity(isPreviewRendering || motionEnabled ? 1 : 0)
 
                 LinearGradient(
                     colors: [
@@ -98,9 +188,18 @@ struct InterstellarBackdrop: View {
             }
             .frame(width: proxy.size.width, height: proxy.size.height)
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
+    }
+
+    private func plateScale(for sample: InterstellarMotionSample) -> CGFloat {
+        guard effectiveMode.usesApproach, !lowPowerMode else { return 1 }
+        guard isPreviewRendering || !isScreenshotRendering else { return 1 }
+        return sample.dollyScale
+    }
+
+    /// Foreground overlays expand past the plate to sell the parallax depth.
+    private func overlayScale(for sample: InterstellarMotionSample) -> CGFloat {
+        let scale = plateScale(for: sample)
+        return scale == 1 ? 1 : 1 + (scale - 1) * 1.7
     }
 
     private var roleVeilOpacity: Double {
@@ -123,69 +222,9 @@ struct InterstellarBackdrop: View {
         default: return 0.44
         }
     }
-}
 
-private struct InterstellarAccretionMotionLayer: View {
-    var isActive: Bool
-
-    var body: some View {
-        TimelineView(
-            .animation(
-                minimumInterval: 1 / Double(InterstellarMotionPolicy.preferredFramesPerSecond),
-                paused: !isActive
-            )
-        ) { timeline in
-            let time = timeline.date.timeIntervalSinceReferenceDate
-            GeometryReader { proxy in
-                let phase = CGFloat(time.truncatingRemainder(dividingBy: 36) / 36)
-                let breath = 0.5 + 0.5 * sin(time * 0.22)
-                ZStack {
-                    RadialGradient(
-                        colors: [
-                            Color(red: 1.0, green: 0.96, blue: 0.84).opacity(0.075 + breath * 0.035),
-                            Color.clear
-                        ],
-                        center: UnitPoint(x: 0.42, y: 0.38),
-                        startRadius: 2,
-                        endRadius: max(proxy.size.width, proxy.size.height) * 0.28
-                    )
-                    .blendMode(.screen)
-
-                    LinearGradient(
-                        stops: [
-                            .init(color: .clear, location: 0.00),
-                            .init(color: Color.white.opacity(0.015), location: 0.35),
-                            .init(color: Color(red: 1.0, green: 0.95, blue: 0.80).opacity(0.13), location: 0.49),
-                            .init(color: Color.white.opacity(0.018), location: 0.64),
-                            .init(color: .clear, location: 1.00)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: proxy.size.width * 0.72, height: max(2, proxy.size.height * 0.012))
-                    .blur(radius: 2.4)
-                    .offset(
-                        x: -proxy.size.width * 0.36 + phase * proxy.size.width * 1.08,
-                        y: proxy.size.height * 0.015
-                    )
-                    .blendMode(.screen)
-
-                    LinearGradient(
-                        colors: [Color.clear, Color.white.opacity(0.055), Color.clear],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                    .frame(width: proxy.size.width * 0.34, height: 1)
-                    .offset(
-                        x: proxy.size.width * (0.18 - phase * 0.42),
-                        y: proxy.size.height * 0.055
-                    )
-                    .blendMode(.screen)
-                }
-                .frame(width: proxy.size.width, height: proxy.size.height)
-            }
-        }
-        .opacity(isActive ? 1 : 0)
+    private func triggerPulse() {
+        pulseStartedAt = Date.timeIntervalSinceReferenceDate
     }
 }
 

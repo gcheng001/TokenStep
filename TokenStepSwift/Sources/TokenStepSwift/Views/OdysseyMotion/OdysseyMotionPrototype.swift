@@ -35,18 +35,31 @@ enum OdysseyMotionPrototypeMode: String, CaseIterable {
 }
 
 enum OdysseyMotionPrototypeEligibility {
-    static func shouldRender(
+    static func shouldMount(
+        isVoyage: Bool,
+        chapter: TokenStepOdysseyChapter,
+        mode: OdysseyMotionPrototypeMode,
+        isScreenshotRendering: Bool
+    ) -> Bool {
+        isVoyage
+            && chapter == .trojanInferno
+            && mode != .off
+            && !isScreenshotRendering
+    }
+
+    static func shouldAnimate(
         isVoyage: Bool,
         chapter: TokenStepOdysseyChapter,
         mode: OdysseyMotionPrototypeMode,
         isSurfaceVisible: Bool,
         isScreenshotRendering: Bool
     ) -> Bool {
-        isVoyage
-            && chapter == .trojanInferno
-            && mode != .off
-            && isSurfaceVisible
-            && !isScreenshotRendering
+        shouldMount(
+            isVoyage: isVoyage,
+            chapter: chapter,
+            mode: mode,
+            isScreenshotRendering: isScreenshotRendering
+        ) && isSurfaceVisible
     }
 }
 
@@ -57,8 +70,17 @@ struct OdysseyTrojanAmbientView: View {
 
     @StateObject private var controller = OdysseyTrojanSceneController()
 
-    private var shouldRender: Bool {
-        OdysseyMotionPrototypeEligibility.shouldRender(
+    private var shouldMount: Bool {
+        OdysseyMotionPrototypeEligibility.shouldMount(
+            isVoyage: TokenStepThemeRuntime.isVoyage,
+            chapter: TokenStepThemeRuntime.odysseyChapter,
+            mode: mode,
+            isScreenshotRendering: isScreenshotRendering
+        )
+    }
+
+    private var shouldAnimate: Bool {
+        OdysseyMotionPrototypeEligibility.shouldAnimate(
             isVoyage: TokenStepThemeRuntime.isVoyage,
             chapter: TokenStepThemeRuntime.odysseyChapter,
             mode: mode,
@@ -69,28 +91,31 @@ struct OdysseyTrojanAmbientView: View {
 
     var body: some View {
         GeometryReader { proxy in
-            if shouldRender {
+            if shouldMount {
                 SpriteView(
                     scene: controller.scene,
+                    // Keep the hosting SKView alive and rendering. Visibility only
+                    // pauses the SKScene below; pausing both can leave a scene that
+                    // was mounted while hidden without a resumable first frame.
                     isPaused: false,
                     preferredFramesPerSecond: mode.preferredFramesPerSecond,
                     options: [.allowsTransparency, .shouldCullNonVisibleNodes]
                 )
                 .onAppear {
-                    controller.update(size: proxy.size, mode: mode, isActive: true)
+                    controller.update(size: proxy.size, mode: mode, isActive: shouldAnimate)
                 }
                 .onChange(of: proxy.size) { _, newSize in
-                    controller.update(size: newSize, mode: mode, isActive: true)
+                    controller.update(size: newSize, mode: mode, isActive: shouldAnimate)
                 }
                 .onChange(of: mode) { _, newMode in
-                    controller.update(size: proxy.size, mode: newMode, isActive: true)
+                    controller.update(size: proxy.size, mode: newMode, isActive: shouldAnimate)
                 }
                 .onDisappear {
                     controller.setRenderingActive(false)
                 }
             }
         }
-        .onChange(of: shouldRender) { _, active in
+        .onChange(of: shouldAnimate) { _, active in
             controller.setRenderingActive(active)
         }
         .onDisappear {

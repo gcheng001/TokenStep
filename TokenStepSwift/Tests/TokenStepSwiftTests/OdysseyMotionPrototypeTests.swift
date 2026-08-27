@@ -15,13 +15,15 @@ final class OdysseyMotionPrototypeTests: XCTestCase {
         )
     }
 
-    func testEligibilityRequiresTrojanVisibleVoyageSurfaceAndSuppressesScreenshots() {
-        XCTAssertTrue(eligibility())
-        XCTAssertFalse(eligibility(isVoyage: false))
-        XCTAssertFalse(eligibility(chapter: .aegeanMist))
-        XCTAssertFalse(eligibility(mode: .off))
-        XCTAssertFalse(eligibility(isSurfaceVisible: false))
-        XCTAssertFalse(eligibility(isScreenshotRendering: true))
+    func testTrojanRendererStaysMountedWhileHiddenAndOnlyAnimatesWhenVisible() {
+        XCTAssertTrue(mountEligibility())
+        XCTAssertTrue(animationEligibility())
+        XCTAssertTrue(mountEligibility(isSurfaceVisible: false))
+        XCTAssertFalse(animationEligibility(isSurfaceVisible: false))
+        XCTAssertFalse(mountEligibility(isVoyage: false))
+        XCTAssertFalse(mountEligibility(chapter: .aegeanMist))
+        XCTAssertFalse(mountEligibility(mode: .off))
+        XCTAssertFalse(mountEligibility(isScreenshotRendering: true))
     }
 
     func testSceneKeepsConfiguredEmitterSetAcrossThirtyVisibilityCycles() async {
@@ -78,18 +80,29 @@ final class OdysseyMotionPrototypeTests: XCTestCase {
         window.alphaValue = 0
 
         coordinator.attach(to: window)
-        try await Task.sleep(nanoseconds: 50_000_000)
+        try await waitForVisibility(false, observedValues: { observedValues })
         XCTAssertEqual(observedValues.last, false)
 
         window.orderFront(nil)
-        try await Task.sleep(nanoseconds: 80_000_000)
+        try await waitForVisibility(true, observedValues: { observedValues })
         XCTAssertEqual(observedValues.last, true)
 
         window.orderOut(nil)
-        try await Task.sleep(nanoseconds: 80_000_000)
+        try await waitForVisibility(false, observedValues: { observedValues })
         XCTAssertEqual(observedValues.last, false)
 
         coordinator.detach()
+    }
+
+    @MainActor
+    private func waitForVisibility(
+        _ expected: Bool,
+        observedValues: () -> [Bool]
+    ) async throws {
+        for _ in 0..<25 {
+            if observedValues().last == expected { return }
+            try await Task.sleep(nanoseconds: 20_000_000)
+        }
     }
 
     func testDiagnosticsWritesTransitionLogOnlyWhenExplicitlyEnabled() throws {
@@ -126,14 +139,29 @@ final class OdysseyMotionPrototypeTests: XCTestCase {
         XCTAssertTrue(content.contains("uptime_ns="))
     }
 
-    private func eligibility(
+    private func mountEligibility(
         isVoyage: Bool = true,
         chapter: TokenStepOdysseyChapter = .trojanInferno,
         mode: OdysseyMotionPrototypeMode = .automatic,
         isSurfaceVisible: Bool = true,
         isScreenshotRendering: Bool = false
     ) -> Bool {
-        OdysseyMotionPrototypeEligibility.shouldRender(
+        OdysseyMotionPrototypeEligibility.shouldMount(
+            isVoyage: isVoyage,
+            chapter: chapter,
+            mode: mode,
+            isScreenshotRendering: isScreenshotRendering
+        )
+    }
+
+    private func animationEligibility(
+        isVoyage: Bool = true,
+        chapter: TokenStepOdysseyChapter = .trojanInferno,
+        mode: OdysseyMotionPrototypeMode = .automatic,
+        isSurfaceVisible: Bool = true,
+        isScreenshotRendering: Bool = false
+    ) -> Bool {
+        OdysseyMotionPrototypeEligibility.shouldAnimate(
             isVoyage: isVoyage,
             chapter: chapter,
             mode: mode,

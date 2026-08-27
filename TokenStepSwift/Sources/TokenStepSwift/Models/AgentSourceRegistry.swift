@@ -96,6 +96,19 @@ enum AgentSourceRegistry {
             rankClientKeys: ["workbuddy"]
         ),
         AgentSourceDescriptor(
+            id: "deepseek-harness",
+            displayName: "DeepSeek Harness",
+            tier: .ledger,
+            colorToken: AgentSourceColorToken(red: 0.82, green: 0.32, blue: 0.58),
+            isExperimental: true,
+            probePaths: [
+                "~/.dsh",
+                "~/Library/Application Support/@deepseek-ai/dsh-desktop/harness"
+            ],
+            aliases: [],
+            rankClientKeys: ["deepseek-harness"]
+        ),
+        AgentSourceDescriptor(
             id: "cursor",
             displayName: "Cursor",
             tier: .quota,
@@ -170,6 +183,7 @@ enum AgentSourceRegistry {
             "Hermes",
             "Hermes Agent",
             "WorkBuddy",
+            "DeepSeek Harness",
             "Codex via CC Switch",
             "Claude Code via CC Switch"
         ]

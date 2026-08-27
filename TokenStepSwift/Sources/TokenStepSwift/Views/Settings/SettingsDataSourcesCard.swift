@@ -213,6 +213,8 @@ enum AgentSourceCopy {
             return L("~/.workbuddy/projects · 实验")
         case "deepseek-harness":
             return L("DeepSeek Harness 会话压缩档 · 实验")
+        case "autoclaw":
+            return L("~/.openclaw-autoclaw · 会话 JSONL")
         case "cursor":
             return L("本地无 token 账本 · 官方事件计入圆环")
         case "cursor-code":

@@ -109,6 +109,16 @@ enum AgentSourceRegistry {
             rankClientKeys: ["deepseek-harness"]
         ),
         AgentSourceDescriptor(
+            id: "autoclaw",
+            displayName: "AutoClaw",
+            tier: .ledger,
+            colorToken: AgentSourceColorToken(red: 0.85, green: 0.33, blue: 0.44),
+            isExperimental: false,
+            probePaths: ["~/.openclaw-autoclaw"],
+            aliases: ["OpenClaw"],
+            rankClientKeys: ["autoclaw"]
+        ),
+        AgentSourceDescriptor(
             id: "cursor",
             displayName: "Cursor",
             tier: .quota,
@@ -184,6 +194,7 @@ enum AgentSourceRegistry {
             "Hermes Agent",
             "WorkBuddy",
             "DeepSeek Harness",
+            "AutoClaw",
             "Codex via CC Switch",
             "Claude Code via CC Switch"
         ]

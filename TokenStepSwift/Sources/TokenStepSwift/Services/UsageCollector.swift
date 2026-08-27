@@ -83,6 +83,7 @@ enum UsageCollector {
                 modifiedSince: sourceCutoff
             )
             : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
+        let autoClaw = collectAutoClawUsage(modifiedSince: sourceCutoff)
         if codexOutcome.usedIncrementalStore {
             cache.files = cache.files.filter { $0.value.tool != "Codex" && livePaths.contains($0.key) }
         } else {
@@ -99,7 +100,7 @@ enum UsageCollector {
             ccSwitch.source = sourceInfo(ccSwitch.source, annotatedWith: deduped)
         }
         let records = recordsInHistoryWindow(
-            deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records,
+            deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records,
             historyDays: historyDays,
             now: Date()
         )
@@ -112,7 +113,8 @@ enum UsageCollector {
                 "ZCode": zCode.source,
                 "Hermes Agent": hermes.source,
                 "WorkBuddy": workBuddy.source,
-                "DeepSeek Harness": deepSeekHarness.source
+                "DeepSeek Harness": deepSeekHarness.source,
+                "AutoClaw": autoClaw.source
             ]
         )
     }
@@ -152,6 +154,10 @@ enum UsageCollector {
                 zstdSessionFiles(under: $0, modifiedSince: cutoff)
             })
         }
+        urls.append(contentsOf: jsonlFiles(
+            under: homeURL.appendingPathComponent(".openclaw-autoclaw", isDirectory: true),
+            modifiedSince: cutoff
+        ))
 
         let files = Dictionary(grouping: urls, by: \.path)
             .compactMap { _, duplicates in duplicates.first.flatMap(collectionFileState) }
@@ -407,6 +413,7 @@ enum UsageCollector {
         hermesDatabaseURL: URL? = nil,
         workBuddyRootURLs: [URL]? = nil,
         deepSeekHarnessRootURLs: [URL]? = nil,
+        autoClawRootURLs: [URL]? = nil,
         includeExperimentalAgentSources: Bool = false,
         historyDays: Int? = nil,
         now: Date = Date()
@@ -444,12 +451,20 @@ enum UsageCollector {
                 modifiedSince: nil
             )
             : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
+        // Keep test snapshots isolated from the developer machine's live AutoClaw
+        // history; callers opt in by supplying explicit roots.
+        let autoClaw = autoClawRootURLs.map {
+            collectAutoClawUsage(rootURLs: $0, modifiedSince: nil)
+        } ?? CollectorResult(
+            records: [],
+            source: SourceInfo(status: "disabled", files: nil, records: 0)
+        )
         let deduped = deduplicateCrossSource(
             nativeRecords: codex.records + claude.records,
             proxyRecords: ccSwitch.records
         )
         ccSwitch.source = sourceInfo(ccSwitch.source, annotatedWith: deduped)
-        let allRecords = deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records
+        let allRecords = deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records
         let records = historyDays.map {
             recordsInHistoryWindow(allRecords, historyDays: $0, now: now)
         } ?? allRecords
@@ -462,7 +477,8 @@ enum UsageCollector {
                 "ZCode": zCode.source,
                 "Hermes Agent": hermes.source,
                 "WorkBuddy": workBuddy.source,
-                "DeepSeek Harness": deepSeekHarness.source
+                "DeepSeek Harness": deepSeekHarness.source,
+                "AutoClaw": autoClaw.source
             ]
         )
     }
@@ -2402,6 +2418,8 @@ enum UsageCollector {
         )
     }
 
+    private static func collectAutoClawUsage(
+        rootURLs: [URL]? = nil,
         modifiedSince cutoffDate: Date?
     ) -> CollectorResult {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -2922,7 +2940,7 @@ enum UsageCollector {
 
     private static func isAgentWorkRecord(_ record: UsageRecord) -> Bool {
         switch record.source {
-        case .nativeCodex, .nativeCodexSQLite, .nativeClaudeCode, .ccSwitchProxy, .zcode, .hermes, .workbuddy, .deepSeekHarness:
+        case .nativeCodex, .nativeCodexSQLite, .nativeClaudeCode, .ccSwitchProxy, .zcode, .hermes, .workbuddy, .deepSeekHarness, .autoclaw:
             return true
         case .unknown:
             return false
@@ -4659,6 +4677,7 @@ private enum UsageRecordSource: String, Codable, Equatable {
     case hermes
     case workbuddy
     case deepSeekHarness
+    case autoclaw
     case unknown
 }
 

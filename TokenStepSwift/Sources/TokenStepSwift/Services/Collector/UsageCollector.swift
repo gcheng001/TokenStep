@@ -47,6 +47,7 @@ enum UsageCollector {
         includeCCSwitchProxyUsage: Bool = true,
         ccSwitchDatabaseURL: URL? = nil,
         includeExperimentalAgentSources: Bool = false,
+        includeDeepSeekHarnessUsage: Bool = false,
         zCodeDatabaseURL: URL? = nil,
         hermesDatabaseURL: URL? = nil,
         workBuddyRootURLs: [URL]? = nil,
@@ -84,6 +85,15 @@ enum UsageCollector {
         let workBuddy = includeExperimentalAgentSources
             ? collectWorkBuddyUsage(rootURLs: workBuddyRootURLs, modifiedSince: sourceCutoff)
             : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
+        let deepSeekHarness = includeDeepSeekHarnessUsage
+            ? collectDeepSeekHarnessUsage(
+                cache: &cache,
+                livePaths: &livePaths,
+                rootURLs: defaultDeepSeekHarnessRoots(),
+                modifiedSince: sourceCutoff
+            )
+            : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
+        let autoClaw = collectAutoClawUsage(modifiedSince: sourceCutoff)
         if codexOutcome.usedIncrementalStore {
             cache.files = cache.files.filter { $0.value.tool != "Codex" && livePaths.contains($0.key) }
         } else {
@@ -100,7 +110,7 @@ enum UsageCollector {
             ccSwitch.source = sourceInfo(ccSwitch.source, annotatedWith: deduped)
         }
         let records = recordsInHistoryWindow(
-            deduped.records + zCode.records + hermes.records + workBuddy.records,
+            deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records,
             historyDays: historyDays,
             now: Date()
         )
@@ -112,7 +122,9 @@ enum UsageCollector {
                 ccSwitchSourceName: ccSwitch.source,
                 "ZCode": zCode.source,
                 "Hermes Agent": hermes.source,
-                "WorkBuddy": workBuddy.source
+                "WorkBuddy": workBuddy.source,
+                "DeepSeek Harness": deepSeekHarness.source,
+                "AutoClaw": autoClaw.source
             ]
         )
     }
@@ -120,6 +132,8 @@ enum UsageCollector {
     static func collectionState(
         historyDays: Int,
         includeExperimentalAgentSources: Bool,
+        includeDeepSeekHarnessUsage: Bool = true,
+        deepSeekHarnessRootURLs: [URL]? = nil,
         homeURL: URL = FileManager.default.homeDirectoryForCurrentUser,
         now: Date = Date()
     ) -> UsageCollectionState {
@@ -148,6 +162,15 @@ enum UsageCollector {
                 homeURL.appendingPathComponent("Library/Application Support/WorkBuddyExtension", isDirectory: true)
             ].flatMap { jsonlFiles(under: $0, modifiedSince: cutoff) })
         }
+        if includeDeepSeekHarnessUsage {
+            urls.append(contentsOf: (deepSeekHarnessRootURLs ?? defaultDeepSeekHarnessRoots(homeURL: homeURL)).flatMap {
+                zstdSessionFiles(under: $0, modifiedSince: cutoff)
+            })
+        }
+        urls.append(contentsOf: jsonlFiles(
+            under: homeURL.appendingPathComponent(".openclaw-autoclaw", isDirectory: true),
+            modifiedSince: cutoff
+        ))
 
         let files = Dictionary(grouping: urls, by: \.path)
             .compactMap { _, duplicates in duplicates.first.flatMap(collectionFileState) }
@@ -428,6 +451,8 @@ enum UsageCollector {
         zCodeDatabaseURL: URL? = nil,
         hermesDatabaseURL: URL? = nil,
         workBuddyRootURLs: [URL]? = nil,
+        deepSeekHarnessRootURLs: [URL]? = nil,
+        autoClawRootURLs: [URL]? = nil,
         includeExperimentalAgentSources: Bool = false,
         historyDays: Int? = nil,
         now: Date = Date()
@@ -457,12 +482,28 @@ enum UsageCollector {
         let workBuddy = includeExperimentalAgentSources
             ? collectWorkBuddyUsage(rootURLs: workBuddyRootURLs ?? [], modifiedSince: nil)
             : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
+        let deepSeekHarness = includeExperimentalAgentSources
+            ? collectDeepSeekHarnessUsage(
+                cache: &cache,
+                livePaths: &livePaths,
+                rootURLs: deepSeekHarnessRootURLs ?? [],
+                modifiedSince: nil
+            )
+            : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
+        // Keep test snapshots isolated from the developer machine's live AutoClaw
+        // history; callers opt in by supplying explicit roots.
+        let autoClaw = autoClawRootURLs.map {
+            collectAutoClawUsage(rootURLs: $0, modifiedSince: nil)
+        } ?? CollectorResult(
+            records: [],
+            source: SourceInfo(status: "disabled", files: nil, records: 0)
+        )
         let deduped = deduplicateCrossSource(
             nativeRecords: codex.records + claude.records,
             proxyRecords: ccSwitch.records
         )
         ccSwitch.source = sourceInfo(ccSwitch.source, annotatedWith: deduped)
-        let allRecords = deduped.records + zCode.records + hermes.records + workBuddy.records
+        let allRecords = deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records
         let records = historyDays.map {
             recordsInHistoryWindow(allRecords, historyDays: $0, now: now)
         } ?? allRecords
@@ -474,7 +515,9 @@ enum UsageCollector {
                 ccSwitchSourceName: ccSwitch.source,
                 "ZCode": zCode.source,
                 "Hermes Agent": hermes.source,
-                "WorkBuddy": workBuddy.source
+                "WorkBuddy": workBuddy.source,
+                "DeepSeek Harness": deepSeekHarness.source,
+                "AutoClaw": autoClaw.source
             ]
         )
     }

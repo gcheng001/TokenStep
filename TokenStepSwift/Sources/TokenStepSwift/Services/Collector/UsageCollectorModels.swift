@@ -296,6 +296,8 @@ enum UsageRecordSource: String, Codable, Equatable {
     case zcode
     case hermes
     case workbuddy
+    case deepSeekHarness
+    case autoclaw
     case unknown
 }
 

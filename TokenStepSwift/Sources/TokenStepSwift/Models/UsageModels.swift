@@ -850,6 +850,7 @@ struct TokenStepSettings: Codable {
     var cursorCodeSignalEnabled: Bool
     var agentWorkRankVisibility: AgentWorkRankVisibility
     var showExperimentalAgentSources: Bool
+    var showDeepSeekHarnessSource: Bool
     var language: TokenStepLanguage
     var skippedUpdateVersion: String?
 
@@ -892,6 +893,7 @@ struct TokenStepSettings: Codable {
         case agentWorkRankVisibility = "agent_work_rank_visibility"
         case legacyShowAgentWorkRank = "show_agent_work_rank"
         case showExperimentalAgentSources = "show_experimental_agent_sources"
+        case showDeepSeekHarnessSource = "show_deepseek_harness_source"
         case language
         case skippedUpdateVersion = "skipped_update_version"
     }
@@ -914,7 +916,8 @@ struct TokenStepSettings: Codable {
         language: .system,
         skippedUpdateVersion: nil,
         classicTheme: .green,
-        odysseyChapter: .directorsCut
+        odysseyChapter: .directorsCut,
+        showDeepSeekHarnessSource: true
     )
 
     init(
@@ -936,7 +939,8 @@ struct TokenStepSettings: Codable {
         skippedUpdateVersion: String?,
         classicTheme: TokenStepTheme? = nil,
         odysseyChapter: TokenStepOdysseyChapter = .directorsCut,
-        showCodexQuota: Bool? = nil
+        showCodexQuota: Bool? = nil,
+        showDeepSeekHarnessSource: Bool = true
     ) {
         self.dailyGoalTokens = dailyGoalTokens
         self.refreshIntervalSeconds = refreshIntervalSeconds
@@ -971,6 +975,7 @@ struct TokenStepSettings: Codable {
         self.cursorCodeSignalEnabled = cursorCodeSignalEnabled
         self.agentWorkRankVisibility = agentWorkRankVisibility
         self.showExperimentalAgentSources = showExperimentalAgentSources
+        self.showDeepSeekHarnessSource = showDeepSeekHarnessSource
         self.language = language
         self.skippedUpdateVersion = skippedUpdateVersion
     }
@@ -1030,6 +1035,7 @@ struct TokenStepSettings: Codable {
             agentWorkRankVisibility = defaults.agentWorkRankVisibility
         }
         showExperimentalAgentSources = try container.decodeIfPresent(Bool.self, forKey: .showExperimentalAgentSources) ?? defaults.showExperimentalAgentSources
+        showDeepSeekHarnessSource = try container.decodeIfPresent(Bool.self, forKey: .showDeepSeekHarnessSource) ?? defaults.showDeepSeekHarnessSource
         language = try container.decodeIfPresent(TokenStepLanguage.self, forKey: .language) ?? defaults.language
         skippedUpdateVersion = try container.decodeIfPresent(String.self, forKey: .skippedUpdateVersion)
     }

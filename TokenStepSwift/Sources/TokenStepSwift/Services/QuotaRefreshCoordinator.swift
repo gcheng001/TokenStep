@@ -26,20 +26,22 @@ enum QuotaRefreshCoordinator {
 
     static func read(_ provider: QuotaProviderID, bypassCache: Bool = false) -> ProviderQuota {
         do {
+            let quota: ProviderQuota
             switch provider {
             case .codex:
-                return try CodexQuotaService.read().asProviderQuota(.codex)
+                quota = try CodexQuotaService.read().asProviderQuota(.codex)
             case .claude:
                 return try ClaudeQuotaService.read(useCache: !bypassCache).asProviderQuota(.claude)
             case .cursor:
                 return try CursorQuotaService.read(useCache: !bypassCache)
             case .glm:
-                return try GLMQuotaService.read()
+                quota = try GLMQuotaService.read()
             case .kimi:
-                return try KimiQuotaService.read()
+                quota = try KimiQuotaService.read()
             case .grok:
-                return try GrokQuotaService.read()
+                quota = try GrokQuotaService.read()
             }
+            return quota
         } catch {
             return ProviderQuota.unavailable(
                 provider,

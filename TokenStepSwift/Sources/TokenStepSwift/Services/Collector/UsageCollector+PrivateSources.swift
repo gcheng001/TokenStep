@@ -1,6 +1,38 @@
 import Foundation
 
 extension UsageCollector {
+    /// DeepSeek Harness desktop keeps one JSON document per session under
+    /// `~/.dsh/storages/session_projcache/sessions`. Each document carries the
+    /// session's cumulative `record.rows.tokenUsage.val.totals`.
+    static func deepSeekHarnessSessionFiles(under root: URL, modifiedSince cutoffDate: Date? = nil) -> [URL] {
+        guard FileManager.default.fileExists(atPath: root.path),
+              let enumerator = FileManager.default.enumerator(
+                at: root,
+                includingPropertiesForKeys: [.isRegularFileKey, .contentModificationDateKey],
+                options: [.skipsHiddenFiles]
+              )
+        else {
+            return []
+        }
+
+        return enumerator.compactMap { item in
+            guard let url = item as? URL,
+                  url.pathExtension == "json",
+                  let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .contentModificationDateKey]),
+                  values.isRegularFile == true
+            else {
+                return nil
+            }
+            if let cutoffDate,
+               let modificationDate = values.contentModificationDate,
+               modificationDate < cutoffDate {
+                return nil
+            }
+            return url
+        }
+    }
+
+    /// Retained for callers that still expect the former zstd session layout.
     static func zstdSessionFiles(under root: URL, modifiedSince cutoffDate: Date? = nil) -> [URL] {
         guard FileManager.default.fileExists(atPath: root.path),
               let enumerator = FileManager.default.enumerator(
@@ -33,6 +65,7 @@ extension UsageCollector {
         homeURL: URL = FileManager.default.homeDirectoryForCurrentUser
     ) -> [URL] {
         [
+            homeURL.appendingPathComponent(".dsh/storages/session_projcache/sessions", isDirectory: true),
             homeURL.appendingPathComponent(".dsh/sessions", isDirectory: true),
             homeURL.appendingPathComponent(
                 "Library/Application Support/@deepseek-ai/dsh-desktop/harness/sessions",
@@ -41,92 +74,82 @@ extension UsageCollector {
         ]
     }
 
+    /// Reads one desktop session document. The stored shape is
+    /// `{ version, record: { identity, rows } }` where `rows.tokenUsage.val.totals`
+    /// holds the session's cumulative usage and `rows.sessionListMetadata.val.lastPromptAt`
+    /// the last activity in milliseconds. One session yields one record so the
+    /// cumulative totals are never double counted.
     private static func parseDeepSeekHarnessFile(_ url: URL) throws -> DeepSeekHarnessFileResult {
-        var sessionID = url.deletingLastPathComponent().lastPathComponent
-        var sequence = 0
-        var candidates: [String: DeepSeekHarnessCandidate] = [:]
-        let decodeResult = try DeepSeekHarnessDecoder.decode(fileURL: url) { line in
-            sequence += 1
-            guard let object = try JSONSerialization.jsonObject(with: line) as? [String: Any] else {
-                return
-            }
-            let eventType = object["type"] as? String ?? ""
-            if eventType == "session" || eventType == "session/header" {
-                sessionID = nonEmptyString(object["id"] as? String) ?? sessionID
-                return
-            }
-            guard eventType == "assistant/message" || eventType == "assistant/chunk",
-                  let data = object["data"] as? [String: Any],
-                  let turn = integerValueIfPresent(data["turn"]),
-                  let step = integerValueIfPresent(data["step"])
-            else {
-                return
-            }
-
-            let chunk = data["chunk"] as? [String: Any]
-            let usage = (data["usage"] as? [String: Any]) ?? (chunk?["usage"] as? [String: Any])
-            let isMessage = eventType == "assistant/message"
-            let chunkType = data["type"] as? String ?? chunk?["type"] as? String
-            guard let usage, isMessage || chunkType == "usage" else {
-                return
-            }
-
-            let source = ((data["message"] as? [String: Any])?["source"] as? [String: Any])
-                ?? ((chunk?["replayState"] as? [String: Any]))
-            let model = nonEmptyString(source?["model"] as? String) ?? "unknown"
-            let provider = nonEmptyString(source?["provider"] as? String)
-            let input = integerValueIfPresent(usage["inputTokens"]) ?? 0
-            let output = integerValueIfPresent(usage["outputTokens"]) ?? 0
-            let cacheRead = integerValueIfPresent(usage["cacheReadTokens"]) ?? 0
-            let cacheWrite = integerValueIfPresent(usage["cacheWriteTokens"]) ?? 0
-            let reasoning = integerValueIfPresent(usage["reasoningTokens"]) ?? 0
-            guard input >= 0, output >= 0, cacheRead >= 0, cacheWrite >= 0, reasoning >= 0 else {
-                return
-            }
-            let timestampEpoch = epochSeconds(object["time"])
-            guard let timestampEpoch,
-                  let date = dayString(fromEpoch: timestampEpoch),
-                  let timestamp = isoString(fromEpoch: timestampEpoch)
-            else {
-                return
-            }
-            let usageCounts = canonicalUsageCounts(
-                rawInputTokens: input,
-                outputTokens: output,
-                cacheCreationInputTokens: cacheWrite,
-                cacheReadInputTokens: cacheRead,
-                reasoningOutputTokens: reasoning,
-                inputIncludesCachedTokens: false
-            )
-            guard usageCounts.totalTokens > 0 else { return }
-
-            let key = "\(sessionID)|\(turn)|\(step)"
-            let candidate = DeepSeekHarnessCandidate(
-                key: key,
-                date: date,
-                timestamp: timestamp,
-                timestampEpoch: timestampEpoch,
-                model: model,
-                usage: usageCounts,
-                requestID: key,
-                sessionID: sessionID,
-                sourcePath: nil,
-                lineNumber: sequence,
-                dataSource: provider,
-                priority: isMessage ? 2 : 1
-            )
-            if let existing = candidates[key] {
-                if candidate.isPreferred(over: existing) {
-                    candidates[key] = candidate
-                }
-            } else {
-                candidates[key] = candidate
-            }
+        let sessionID = url.deletingPathExtension().lastPathComponent
+        let data = try Data(contentsOf: url)
+        guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let record = object["record"] as? [String: Any],
+              let rows = record["rows"] as? [String: Any]
+        else {
+            throw DeepSeekHarnessDecodeError.invalidCompressedData("session document is not decodable")
         }
-        return DeepSeekHarnessFileResult(
-            records: candidates.values.map(\.record),
-            partialTail: decodeResult.partialTail
+
+        func rowValue(_ key: String) -> [String: Any]? {
+            (rows[key] as? [String: Any])?["val"] as? [String: Any]
+        }
+        func milliseconds(_ value: Any?) -> TimeInterval? {
+            guard let raw = integerValueIfPresent(value), raw > 0 else { return nil }
+            return raw > 10_000_000_000 ? TimeInterval(raw) / 1_000 : TimeInterval(raw)
+        }
+
+        guard let totals = rowValue("tokenUsage")?["totals"] as? [String: Any] else {
+            return DeepSeekHarnessFileResult(records: [], partialTail: false)
+        }
+        let uncachedInput = integerValueIfPresent(totals["uncachedInputTokens"]) ?? 0
+        let output = integerValueIfPresent(totals["outputTokens"]) ?? 0
+        let cacheRead = integerValueIfPresent(totals["cacheReadTokens"]) ?? 0
+        let cacheWrite = integerValueIfPresent(totals["cacheWriteTokens"]) ?? 0
+        guard uncachedInput >= 0, output >= 0, cacheRead >= 0, cacheWrite >= 0 else {
+            return DeepSeekHarnessFileResult(records: [], partialTail: false)
+        }
+
+        let usageCounts = canonicalUsageCounts(
+            rawInputTokens: uncachedInput,
+            outputTokens: output,
+            cacheCreationInputTokens: cacheWrite,
+            cacheReadInputTokens: cacheRead,
+            reasoningOutputTokens: 0,
+            inputIncludesCachedTokens: false
         )
+        guard usageCounts.totalTokens > 0 else {
+            return DeepSeekHarnessFileResult(records: [], partialTail: false)
+        }
+
+        let identity = record["identity"] as? [String: Any]
+        let lastPromptAt = rowValue("sessionListMetadata")?["lastPromptAt"]
+        let createdAt = identity?["createdAt"]
+        let rawEpoch = lastPromptAt ?? createdAt
+        guard let epoch = milliseconds(rawEpoch),
+              let date = dayString(fromEpoch: rawEpoch),
+              let timestamp = isoString(fromEpoch: rawEpoch)
+        else {
+            return DeepSeekHarnessFileResult(records: [], partialTail: false)
+        }
+
+        let lastUsed = (rowValue("modelSelection")?["lastUsed"] as? [String: Any])
+        let model = nonEmptyString(lastUsed?["model"] as? String) ?? "unknown"
+        let provider = nonEmptyString(lastUsed?["provider"] as? String)
+        let key = "dsh-session:\(sessionID)"
+        let candidate = DeepSeekHarnessCandidate(
+            key: key,
+            date: date,
+            timestamp: timestamp,
+            timestampEpoch: epoch,
+            model: model,
+            usage: usageCounts,
+            requestID: key,
+            sessionID: sessionID,
+            sourcePath: url.path,
+            lineNumber: nil,
+            dataSource: provider,
+            priority: 2
+        )
+        return DeepSeekHarnessFileResult(records: [candidate.record], partialTail: false)
     }
 
     private static func mergeDeepSeekHarnessCandidate(
@@ -157,7 +180,7 @@ extension UsageCollector {
         rootURLs: [URL],
         modifiedSince: Date?
     ) -> CollectorResult {
-        let urls = rootURLs.flatMap { zstdSessionFiles(under: $0, modifiedSince: modifiedSince) }
+        let urls = rootURLs.flatMap { deepSeekHarnessSessionFiles(under: $0, modifiedSince: modifiedSince) }
         guard !urls.isEmpty else {
             return CollectorResult(
                 records: [],

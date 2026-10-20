@@ -164,7 +164,7 @@ enum UsageCollector {
         }
         if includeDeepSeekHarnessUsage {
             urls.append(contentsOf: (deepSeekHarnessRootURLs ?? defaultDeepSeekHarnessRoots(homeURL: homeURL)).flatMap {
-                zstdSessionFiles(under: $0, modifiedSince: cutoff)
+                deepSeekHarnessSessionFiles(under: $0, modifiedSince: cutoff)
             })
         }
         urls.append(contentsOf: jsonlFiles(

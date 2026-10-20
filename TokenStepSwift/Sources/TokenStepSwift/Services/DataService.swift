@@ -126,6 +126,22 @@ enum DataService {
             collectedSnapshot,
             previousSnapshot: previousSnapshot
         )
+        // A source that was healthy and now cannot be read must not silently
+        // overwrite real usage with zero. Keep the last good snapshot and let
+        // the next cycle retry.
+        if let regression = sourceReadRegression(
+            collected: collectedSnapshot,
+            previous: previousSnapshot,
+            settings: settings
+        ) {
+            throw NSError(
+                domain: "TokenStepCollector",
+                code: 3,
+                userInfo: [
+                    NSLocalizedDescriptionKey: L("暂时无法读取 \(regression)，已保留上次统计。")
+                ]
+            )
+        }
         let snapshot = snapshotWithMigrationMetadata(
             collectedSnapshot,
             previousSnapshot: previousSnapshot
@@ -149,6 +165,42 @@ enum DataService {
             )
         }
         return sourceStateWasStable ? .updated : .updatedWhileSourcesChanged
+    }
+
+    /// Statuses that mean "the data exists but this read failed", as opposed to
+    /// a source being genuinely absent (`missing_db`) or having no rows
+    /// (`missing_valid_rows`). Only these may block a snapshot write.
+    private static let readFailureStatuses: Set<String> = [
+        "unreadable_db",
+        "query_failed",
+        "schema_unreadable",
+        "schema_mismatch",
+        "schema_missing_data_source",
+        "incremental_cache_error"
+    ]
+
+    /// Names the first source that previously reported usage and now fails to
+    /// read, so the caller can keep the last good snapshot instead of writing
+    /// zeros. Returns nil when every failing source was already empty.
+    static func sourceReadRegression(
+        collected: UsageSnapshot,
+        previous: UsageSnapshot?,
+        settings _: TokenStepSettings
+    ) -> String? {
+        guard let previous else { return nil }
+        for (name, current) in collected.sources {
+            guard let status = current.status,
+                  readFailureStatuses.contains(status)
+            else { continue }
+            // "disabled" means the collector skipped this source on purpose;
+            // it never reaches this branch, so a switched-off source cannot
+            // masquerade as a read failure.
+            guard let previousSource = previous.sources[name],
+                  (previousSource.records ?? 0) > 0
+            else { continue }
+            return name
+        }
+        return nil
     }
 
     private static func snapshotWithMigrationMetadata(

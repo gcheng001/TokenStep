@@ -1,6 +1,14 @@
 import Foundation
 
 extension UsageCollector {
+    /// Dedupe grouping key: `isSameDedupeDomain` requires an exact date string and
+    /// tool-family match, so candidate lookups can be bucketed by this key without
+    /// changing which pairs are ever considered.
+    fileprivate struct DedupeDomain: Hashable {
+        let date: String
+        let family: String
+    }
+
     static func deduplicateCrossSource(
         nativeRecords: [UsageRecord],
         proxyRecords: [UsageRecord]
@@ -13,9 +21,45 @@ extension UsageCollector {
         var matchedNativeIndices = Set<Int>()
         let skippedProxyRecords = 0
 
+        // Bucket native records by (date, tool family) up front. Every pair the
+        // old all-against-all scan produced outside these buckets failed
+        // isSameDedupeDomain anyway, so scanning per-bucket keeps pair semantics
+        // identical while dropping the cross-bucket comparisons that made the
+        // quadratic scan blow past the helper time budget on large histories.
+        var nativeCandidatesByDomain: [DedupeDomain: [Int]] = [:]
+        for nativeIndex in nativeRecords.indices {
+            let record = nativeRecords[nativeIndex]
+            guard record.source != .ccSwitchProxy,
+                  let family = toolFamily(for: record.tool) else { continue }
+            let domain = DedupeDomain(date: record.date, family: family)
+            nativeCandidatesByDomain[domain, default: []].append(nativeIndex)
+        }
+        func bucketedNativeCandidates(forProxyAt proxyIndex: Int) -> [Int] {
+            let record = proxyRecords[proxyIndex]
+            guard let family = toolFamily(for: record.tool) else { return [] }
+            let domain = DedupeDomain(date: record.date, family: family)
+            return nativeCandidatesByDomain[domain] ?? []
+        }
+        func remainingNativeCandidates(forProxyAt proxyIndex: Int) -> [Int] {
+            bucketedNativeCandidates(forProxyAt: proxyIndex)
+                .filter { !matchedNativeIndices.contains($0) }
+        }
+
+        // Parse each distinct timestamp string once. The previous code re-parsed
+        // both sides of every candidate pair through NSISO8601DateFormatter,
+        // which dominated collection CPU time as record counts grew.
+        var epochByTimestamp: [String: TimeInterval?] = [:]
+        func cachedEpoch(_ value: String?) -> TimeInterval? {
+            guard let value else { return nil }
+            if let cached = epochByTimestamp[value] { return cached }
+            let epoch = parseISO(value)?.timeIntervalSince1970
+            epochByTimestamp[value] = epoch
+            return epoch
+        }
+
         let exactPairs = uniqueDedupePairs(
             proxyIndices: deduplicableProxyIndices,
-            nativeIndices: Array(nativeRecords.indices)
+            nativeCandidatesFor: bucketedNativeCandidates
         ) { proxyIndex, nativeIndex in
             isSameDedupeDomain(
                 proxyRecord: proxyRecords[proxyIndex],
@@ -37,17 +81,18 @@ extension UsageCollector {
         // requests can legitimately look the same. A shared session is the minimum
         // fallback correlation when request/response IDs are unavailable.
         let remainingProxyIndices = deduplicableProxyIndices.filter { !matchedProxyIndices.contains($0) }
-        let remainingNativeIndices = nativeRecords.indices.filter { !matchedNativeIndices.contains($0) }
         let sessionPairs = uniqueDedupePairs(
             proxyIndices: remainingProxyIndices,
-            nativeIndices: Array(remainingNativeIndices)
+            nativeCandidatesFor: remainingNativeCandidates
         ) { proxyIndex, nativeIndex in
             isSameDedupeDomain(
                 proxyRecord: proxyRecords[proxyIndex],
                 nativeRecord: nativeRecords[nativeIndex]
             ) && hasSessionIdentityMatch(
                 proxyRecord: proxyRecords[proxyIndex],
-                nativeRecord: nativeRecords[nativeIndex]
+                nativeRecord: nativeRecords[nativeIndex],
+                proxyEpoch: cachedEpoch(proxyRecords[proxyIndex].timestamp),
+                nativeEpoch: cachedEpoch(nativeRecords[nativeIndex].timestamp)
             )
         }
         applyDedupePairs(
@@ -72,13 +117,13 @@ extension UsageCollector {
 
     static func uniqueDedupePairs(
         proxyIndices: [Int],
-        nativeIndices: [Int],
+        nativeCandidatesFor proxyCandidates: (Int) -> [Int],
         matches: (Int, Int) -> Bool
     ) -> [(proxy: Int, native: Int)] {
         var nativeCandidatesByProxy: [Int: [Int]] = [:]
         var proxyCandidateCountByNative: [Int: Int] = [:]
         for proxyIndex in proxyIndices {
-            let candidates = nativeIndices.filter { matches(proxyIndex, $0) }
+            let candidates = proxyCandidates(proxyIndex).filter { matches(proxyIndex, $0) }
             nativeCandidatesByProxy[proxyIndex] = candidates
             for nativeIndex in candidates {
                 proxyCandidateCountByNative[nativeIndex, default: 0] += 1
@@ -156,11 +201,16 @@ extension UsageCollector {
         return !proxyIDs.isDisjoint(with: nativeIDs)
     }
 
-    static func hasSessionIdentityMatch(proxyRecord: UsageRecord, nativeRecord: UsageRecord) -> Bool {
+    static func hasSessionIdentityMatch(
+        proxyRecord: UsageRecord,
+        nativeRecord: UsageRecord,
+        proxyEpoch: TimeInterval?,
+        nativeEpoch: TimeInterval?
+    ) -> Bool {
         guard let proxySessionID = nonEmptyString(proxyRecord.sessionID),
               let nativeSessionID = nonEmptyString(nativeRecord.sessionID),
               proxySessionID == nativeSessionID,
-              areTimestampsClose(proxyRecord.timestamp, nativeRecord.timestamp, seconds: 10),
+              epochsClose(proxyEpoch, nativeEpoch, seconds: 10),
               modelsCompatible(proxyRecord.model, nativeRecord.model),
               usageVectorsClose(proxyRecord: proxyRecord, nativeRecord: nativeRecord)
         else {
@@ -190,15 +240,13 @@ extension UsageCollector {
         return nil
     }
 
-    static func areTimestampsClose(_ lhs: String?, _ rhs: String?, seconds: TimeInterval) -> Bool {
+    static func epochsClose(_ lhs: TimeInterval?, _ rhs: TimeInterval?, seconds: TimeInterval) -> Bool {
         guard let lhs,
-              let rhs,
-              let lhsDate = parseISO(lhs),
-              let rhsDate = parseISO(rhs)
+              let rhs
         else {
             return false
         }
-        return abs(lhsDate.timeIntervalSince(rhsDate)) <= seconds
+        return abs(lhs - rhs) <= seconds
     }
 
     static func modelsCompatible(_ lhs: String, _ rhs: String) -> Bool {

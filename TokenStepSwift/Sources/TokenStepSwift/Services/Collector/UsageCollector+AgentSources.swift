@@ -506,6 +506,103 @@ extension UsageCollector {
         }
     }
 
+    /// MiniMax Code (mavis runtime) keeps one incremental row per model turn in
+    /// `~/.minimax/v2/sqlite/runtime-state.sqlite`. Rows are deltas, not running
+    /// totals: summing every row yields the session total.
+    ///
+    /// `input_tokens` counts fresh input only; cached prompt tokens live in
+    /// `cache_read_tokens`, so both buckets are additive.
+    static func collectMiniMaxCodeUsage(databaseURL: URL? = nil) -> CollectorResult {
+        let database = databaseURL ?? FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".minimax/v2/sqlite/runtime-state.sqlite")
+
+        guard FileManager.default.fileExists(atPath: database.path) else {
+            return CollectorResult(records: [], source: SourceInfo(status: "missing_db", files: 0, records: 0))
+        }
+        guard FileManager.default.isReadableFile(atPath: database.path) else {
+            return CollectorResult(records: [], source: SourceInfo(status: "unreadable_db", files: 1, records: 0))
+        }
+        guard let columns = sqliteJSONRows(database: database, query: "pragma table_info(local_runtime_token_usage)") else {
+            return CollectorResult(records: [], source: SourceInfo(status: "schema_unreadable", files: 1, records: 0))
+        }
+        guard !columns.isEmpty else {
+            return CollectorResult(records: [], source: SourceInfo(status: "missing_table", files: 1, records: 0))
+        }
+
+        let availableColumns = Set(columns.compactMap { $0["name"] as? String })
+        let requiredColumns: Set<String> = [
+            "id", "session_id", "agent_name", "turn_id", "model", "ts",
+            "input_tokens", "output_tokens", "reasoning_tokens",
+            "cache_read_tokens", "cache_write_tokens"
+        ]
+        guard requiredColumns.isSubset(of: availableColumns) else {
+            return CollectorResult(records: [], source: SourceInfo(status: "schema_mismatch", files: 1, records: 0))
+        }
+        let costExpression = availableColumns.contains("cost_usd") ? "cost_usd" : "NULL"
+
+        let query = """
+        select
+            id,
+            session_id,
+            agent_name,
+            turn_id,
+            coalesce(nullif(model, ''), '') as display_model,
+            ts,
+            coalesce(input_tokens, 0) as input_tokens,
+            coalesce(output_tokens, 0) as output_tokens,
+            coalesce(reasoning_tokens, 0) as reasoning_tokens,
+            coalesce(cache_read_tokens, 0) as cache_read_tokens,
+            coalesce(cache_write_tokens, 0) as cache_write_tokens,
+            \(costExpression) as cost_usd
+        from local_runtime_token_usage
+        where ts > 0
+        order by ts, id
+        """
+
+        guard let rows = sqliteJSONRows(database: database, query: query) else {
+            return CollectorResult(records: [], source: SourceInfo(status: "query_failed", files: 1, records: 0))
+        }
+
+        let records = rows.compactMap { row -> UsageRecord? in
+            guard let day = dayString(fromEpoch: row["ts"] as Any) else { return nil }
+            let usage = canonicalUsageCounts(
+                rawInputTokens: integerValue(row["input_tokens"] as Any),
+                outputTokens: integerValue(row["output_tokens"] as Any),
+                cacheCreationInputTokens: integerValue(row["cache_write_tokens"] as Any),
+                cacheReadInputTokens: integerValue(row["cache_read_tokens"] as Any),
+                reasoningOutputTokens: integerValue(row["reasoning_tokens"] as Any),
+                inputIncludesCachedTokens: false
+            )
+            guard usage.totalTokens > 0 else { return nil }
+
+            let modelName = nonEmptyString(row["display_model"] as? String)
+            let agentName = nonEmptyString(row["agent_name"] as? String)
+            return UsageRecord(
+                date: day,
+                timestamp: isoString(fromEpoch: row["ts"] as Any),
+                timestampEpoch: epochSeconds(row["ts"] as Any),
+                tool: "MiniMax Code",
+                model: modelKey(modelName ?? agentName),
+                usage: usage,
+                costUSD: doubleValue(row["cost_usd"] as Any),
+                source: .miniMaxCode,
+                requestID: nonEmptyString(row["turn_id"] as? String),
+                sessionID: nonEmptyString(row["session_id"] as? String),
+                dataSource: agentName,
+                modelRequestCount: 1
+            )
+        }
+
+        return CollectorResult(
+            records: records,
+            source: SourceInfo(
+                status: records.isEmpty ? "missing_valid_rows" : "ok",
+                files: 1,
+                records: records.count
+            )
+        )
+    }
+
     static func ccSwitchFreshInputTokens(
         rawInputTokens: Int,
         cacheReadTokens: Int,

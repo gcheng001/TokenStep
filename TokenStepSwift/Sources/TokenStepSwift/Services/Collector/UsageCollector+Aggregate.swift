@@ -91,7 +91,7 @@ extension UsageCollector {
 
     static func isAgentWorkRecord(_ record: UsageRecord) -> Bool {
         switch record.source {
-        case .nativeCodex, .nativeCodexSQLite, .nativeClaudeCode, .ccSwitchProxy, .zcode, .hermes, .workbuddy, .deepSeekHarness, .autoclaw:
+        case .nativeCodex, .nativeCodexSQLite, .nativeClaudeCode, .ccSwitchProxy, .zcode, .hermes, .workbuddy, .deepSeekHarness, .autoclaw, .miniMaxCode:
             return true
         case .unknown:
             return false

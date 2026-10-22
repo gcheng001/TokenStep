@@ -48,6 +48,7 @@ enum UsageCollector {
         ccSwitchDatabaseURL: URL? = nil,
         includeExperimentalAgentSources: Bool = false,
         includeDeepSeekHarnessUsage: Bool = false,
+        includeMiniMaxCodeUsage: Bool = false,
         zCodeDatabaseURL: URL? = nil,
         hermesDatabaseURL: URL? = nil,
         workBuddyRootURLs: [URL]? = nil,
@@ -94,6 +95,9 @@ enum UsageCollector {
             )
             : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
         let autoClaw = collectAutoClawUsage(modifiedSince: sourceCutoff)
+        let miniMaxCode = includeMiniMaxCodeUsage
+            ? collectMiniMaxCodeUsage()
+            : CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
         if codexOutcome.usedIncrementalStore {
             cache.files = cache.files.filter { $0.value.tool != "Codex" && livePaths.contains($0.key) }
         } else {
@@ -110,7 +114,7 @@ enum UsageCollector {
             ccSwitch.source = sourceInfo(ccSwitch.source, annotatedWith: deduped)
         }
         let records = recordsInHistoryWindow(
-            deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records,
+            deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records + miniMaxCode.records,
             historyDays: historyDays,
             now: Date()
         )
@@ -124,7 +128,8 @@ enum UsageCollector {
                 "Hermes Agent": hermes.source,
                 "WorkBuddy": workBuddy.source,
                 "DeepSeek Harness": deepSeekHarness.source,
-                "AutoClaw": autoClaw.source
+                "AutoClaw": autoClaw.source,
+                "MiniMax Code": miniMaxCode.source
             ]
         )
     }
@@ -133,6 +138,7 @@ enum UsageCollector {
         historyDays: Int,
         includeExperimentalAgentSources: Bool,
         includeDeepSeekHarnessUsage: Bool = true,
+        includeMiniMaxCodeUsage: Bool = true,
         deepSeekHarnessRootURLs: [URL]? = nil,
         homeURL: URL = FileManager.default.homeDirectoryForCurrentUser,
         now: Date = Date()
@@ -171,6 +177,11 @@ enum UsageCollector {
             under: homeURL.appendingPathComponent(".openclaw-autoclaw", isDirectory: true),
             modifiedSince: cutoff
         ))
+        if includeMiniMaxCodeUsage {
+            urls.append(contentsOf: existingDatabaseFiles([
+                homeURL.appendingPathComponent(".minimax/v2/sqlite/runtime-state.sqlite")
+            ]))
+        }
 
         let files = Dictionary(grouping: urls, by: \.path)
             .compactMap { _, duplicates in duplicates.first.flatMap(collectionFileState) }
@@ -453,6 +464,7 @@ enum UsageCollector {
         workBuddyRootURLs: [URL]? = nil,
         deepSeekHarnessRootURLs: [URL]? = nil,
         autoClawRootURLs: [URL]? = nil,
+        miniMaxDatabaseURL: URL? = nil,
         includeExperimentalAgentSources: Bool = false,
         historyDays: Int? = nil,
         now: Date = Date()
@@ -498,12 +510,14 @@ enum UsageCollector {
             records: [],
             source: SourceInfo(status: "disabled", files: nil, records: 0)
         )
+        let miniMaxCode = miniMaxDatabaseURL.map { collectMiniMaxCodeUsage(databaseURL: $0) }
+            ?? CollectorResult(records: [], source: SourceInfo(status: "disabled", files: nil, records: 0))
         let deduped = deduplicateCrossSource(
             nativeRecords: codex.records + claude.records,
             proxyRecords: ccSwitch.records
         )
         ccSwitch.source = sourceInfo(ccSwitch.source, annotatedWith: deduped)
-        let allRecords = deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records
+        let allRecords = deduped.records + zCode.records + hermes.records + workBuddy.records + deepSeekHarness.records + autoClaw.records + miniMaxCode.records
         let records = historyDays.map {
             recordsInHistoryWindow(allRecords, historyDays: $0, now: now)
         } ?? allRecords
@@ -517,7 +531,8 @@ enum UsageCollector {
                 "Hermes Agent": hermes.source,
                 "WorkBuddy": workBuddy.source,
                 "DeepSeek Harness": deepSeekHarness.source,
-                "AutoClaw": autoClaw.source
+                "AutoClaw": autoClaw.source,
+                "MiniMax Code": miniMaxCode.source
             ]
         )
     }

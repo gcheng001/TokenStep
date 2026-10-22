@@ -104,7 +104,8 @@ enum DataService {
         let beforeState = UsageCollector.collectionState(
             historyDays: historyDays,
             includeExperimentalAgentSources: settings.showExperimentalAgentSources,
-            includeDeepSeekHarnessUsage: settings.showDeepSeekHarnessSource
+            includeDeepSeekHarnessUsage: settings.showDeepSeekHarnessSource,
+            includeMiniMaxCodeUsage: settings.showMiniMaxCodeSource
         )
         let existingCheckpoint = loadCollectionCheckpoint()
         if CollectionCheckpointPolicy.shouldSkipCollection(
@@ -120,6 +121,7 @@ enum DataService {
             historyDays: historyDays,
             includeExperimentalAgentSources: settings.showExperimentalAgentSources,
             includeDeepSeekHarnessUsage: settings.showDeepSeekHarnessSource,
+            includeMiniMaxCodeUsage: settings.showMiniMaxCodeSource,
             forceFullValidation: force || existingCheckpoint?.isFresh(at: Date()) != true
         )
         try validateRecalibrationCandidate(
@@ -150,7 +152,8 @@ enum DataService {
         let afterState = UsageCollector.collectionState(
             historyDays: historyDays,
             includeExperimentalAgentSources: settings.showExperimentalAgentSources,
-            includeDeepSeekHarnessUsage: settings.showDeepSeekHarnessSource
+            includeDeepSeekHarnessUsage: settings.showDeepSeekHarnessSource,
+            includeMiniMaxCodeUsage: settings.showMiniMaxCodeSource
         )
         let sourceStateWasStable = CollectionCheckpointPolicy.shouldPersist(
             beforeCollection: beforeState,

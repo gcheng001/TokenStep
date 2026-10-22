@@ -76,6 +76,16 @@ enum AgentSourceRegistry {
             rankClientKeys: ["zcode"]
         ),
         AgentSourceDescriptor(
+            id: "minimax-code",
+            displayName: "MiniMax Code",
+            tier: .ledger,
+            colorToken: AgentSourceColorToken(red: 0.95, green: 0.55, blue: 0.15),
+            isExperimental: true,
+            probePaths: ["~/.minimax/v2/sqlite/runtime-state.sqlite"],
+            aliases: ["MiniMax", "Mavis"],
+            rankClientKeys: ["minimax", "mavis"]
+        ),
+        AgentSourceDescriptor(
             id: "hermes",
             displayName: "Hermes Agent",
             tier: .ledger,

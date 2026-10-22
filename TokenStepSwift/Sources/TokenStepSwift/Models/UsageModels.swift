@@ -851,6 +851,7 @@ struct TokenStepSettings: Codable {
     var agentWorkRankVisibility: AgentWorkRankVisibility
     var showExperimentalAgentSources: Bool
     var showDeepSeekHarnessSource: Bool
+    var showMiniMaxCodeSource: Bool
     var language: TokenStepLanguage
     var skippedUpdateVersion: String?
 
@@ -894,6 +895,7 @@ struct TokenStepSettings: Codable {
         case legacyShowAgentWorkRank = "show_agent_work_rank"
         case showExperimentalAgentSources = "show_experimental_agent_sources"
         case showDeepSeekHarnessSource = "show_deepseek_harness_source"
+        case showMiniMaxCodeSource = "show_minimax_code_source"
         case language
         case skippedUpdateVersion = "skipped_update_version"
     }
@@ -917,7 +919,8 @@ struct TokenStepSettings: Codable {
         skippedUpdateVersion: nil,
         classicTheme: .green,
         odysseyChapter: .directorsCut,
-        showDeepSeekHarnessSource: true
+        showDeepSeekHarnessSource: true,
+        showMiniMaxCodeSource: true
     )
 
     init(
@@ -940,7 +943,8 @@ struct TokenStepSettings: Codable {
         classicTheme: TokenStepTheme? = nil,
         odysseyChapter: TokenStepOdysseyChapter = .directorsCut,
         showCodexQuota: Bool? = nil,
-        showDeepSeekHarnessSource: Bool = true
+        showDeepSeekHarnessSource: Bool = true,
+        showMiniMaxCodeSource: Bool = true
     ) {
         self.dailyGoalTokens = dailyGoalTokens
         self.refreshIntervalSeconds = refreshIntervalSeconds
@@ -976,6 +980,7 @@ struct TokenStepSettings: Codable {
         self.agentWorkRankVisibility = agentWorkRankVisibility
         self.showExperimentalAgentSources = showExperimentalAgentSources
         self.showDeepSeekHarnessSource = showDeepSeekHarnessSource
+        self.showMiniMaxCodeSource = showMiniMaxCodeSource
         self.language = language
         self.skippedUpdateVersion = skippedUpdateVersion
     }
@@ -1036,6 +1041,7 @@ struct TokenStepSettings: Codable {
         }
         showExperimentalAgentSources = try container.decodeIfPresent(Bool.self, forKey: .showExperimentalAgentSources) ?? defaults.showExperimentalAgentSources
         showDeepSeekHarnessSource = try container.decodeIfPresent(Bool.self, forKey: .showDeepSeekHarnessSource) ?? defaults.showDeepSeekHarnessSource
+        showMiniMaxCodeSource = try container.decodeIfPresent(Bool.self, forKey: .showMiniMaxCodeSource) ?? defaults.showMiniMaxCodeSource
         language = try container.decodeIfPresent(TokenStepLanguage.self, forKey: .language) ?? defaults.language
         skippedUpdateVersion = try container.decodeIfPresent(String.self, forKey: .skippedUpdateVersion)
     }

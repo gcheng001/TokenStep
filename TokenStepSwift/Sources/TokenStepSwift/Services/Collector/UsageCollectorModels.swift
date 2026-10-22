@@ -298,6 +298,7 @@ enum UsageRecordSource: String, Codable, Equatable {
     case workbuddy
     case deepSeekHarness
     case autoclaw
+    case miniMaxCode
     case unknown
 }
 

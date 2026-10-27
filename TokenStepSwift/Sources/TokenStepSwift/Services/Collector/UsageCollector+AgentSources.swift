@@ -261,6 +261,46 @@ extension UsageCollector {
     }
 
     static func collectHermesUsage(databaseURL: URL? = nil) -> CollectorResult {
+        // The Hermes ledger lives behind ~/.hermes, a symlink onto an external
+        // volume. When that volume wedges, the first filesystem probe can block
+        // indefinitely — observed as an app-spawned helper stuck in access() for
+        // minutes while fresh shell processes answered the same path instantly.
+        // Hermes is the smallest source, so bound the whole collection and skip it
+        // when the probe stalls instead of stalling the entire refresh behind one
+        // wedged stat call.
+        boundedFileSystemCollection(seconds: 5) {
+            collectHermesUsageUnbounded(databaseURL: databaseURL)
+        }
+    }
+
+    /// Runs a filesystem-touching collection with a bounded wait. A wedged volume
+    /// leaves the worker thread blocked inside the syscall; the collector runs in a
+    /// short-lived helper process, so the stalled thread simply dies with the
+    /// process instead of stalling the refresh pipeline behind it.
+    static func boundedFileSystemCollection(
+        seconds: TimeInterval,
+        body: @escaping () -> CollectorResult
+    ) -> CollectorResult {
+        let box = BoundedCollectionBox()
+        let finished = DispatchSemaphore(value: 0)
+        DispatchQueue.global(qos: .utility).async {
+            box.result = body()
+            finished.signal()
+        }
+        if finished.wait(timeout: .now() + seconds) == .success, let result = box.result {
+            return result
+        }
+        return CollectorResult(
+            records: [],
+            source: SourceInfo(status: "probe_timeout", files: 0, records: 0)
+        )
+    }
+
+    fileprivate final class BoundedCollectionBox {
+        var result: CollectorResult?
+    }
+
+    private static func collectHermesUsageUnbounded(databaseURL: URL? = nil) -> CollectorResult {
         let database = databaseURL ?? FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".hermes/state.db")
 

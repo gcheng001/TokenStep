@@ -9,6 +9,18 @@ extension UsageCollector {
         let family: String
     }
 
+    /// Session-pass lookup key: `hasSessionIdentityMatch` requires equal non-empty
+    /// session IDs inside the same domain, so session candidates can be bucketed by
+    /// this key too.
+    fileprivate struct DedupeSessionKey: Hashable {
+        let domain: DedupeDomain
+        let sessionID: String
+    }
+
+    /// Session identity requires both timestamps to sit inside this window; the
+    /// candidate lookup and the predicate must agree on the value.
+    fileprivate static let sessionEpochTolerance: TimeInterval = 10
+
     static func deduplicateCrossSource(
         nativeRecords: [UsageRecord],
         proxyRecords: [UsageRecord]
@@ -21,28 +33,35 @@ extension UsageCollector {
         var matchedNativeIndices = Set<Int>()
         let skippedProxyRecords = 0
 
-        // Bucket native records by (date, tool family) up front. Every pair the
-        // old all-against-all scan produced outside these buckets failed
-        // isSameDedupeDomain anyway, so scanning per-bucket keeps pair semantics
-        // identical while dropping the cross-bucket comparisons that made the
-        // quadratic scan blow past the helper time budget on large histories.
-        var nativeCandidatesByDomain: [DedupeDomain: [Int]] = [:]
+        // Index native records once instead of scanning every (date, family) bucket
+        // pairwise. Both passes below only walk pairs that satisfy a cheap necessary
+        // condition of their predicate — a shared request/response identifier for the
+        // exact pass, or the same session ID inside the ±10 s epoch window for the
+        // session pass — so the lookups return exactly the pairs the per-bucket
+        // pairwise scan compared. That scan was O(P*N) inside a single heavy day,
+        // which alone exceeded the helper's collect budget once a day held thousands
+        // of native and proxy records.
+        var nativeIdentifiersByDomain: [DedupeDomain: [String: [Int]]] = [:]
+        var nativeSessionsByDomain: [DedupeSessionKey: [(epoch: TimeInterval, index: Int)]] = [:]
         for nativeIndex in nativeRecords.indices {
             let record = nativeRecords[nativeIndex]
             guard record.source != .ccSwitchProxy,
                   let family = toolFamily(for: record.tool) else { continue }
             let domain = DedupeDomain(date: record.date, family: family)
-            nativeCandidatesByDomain[domain, default: []].append(nativeIndex)
+            for identifier in Set([record.requestID, record.responseID].compactMap(nonEmptyString)) {
+                nativeIdentifiersByDomain[domain, default: [:]][identifier, default: []].append(nativeIndex)
+            }
+            if let sessionID = nonEmptyString(record.sessionID),
+               let timestamp = record.timestamp,
+               let epoch = parseISO(timestamp)?.timeIntervalSince1970 {
+                nativeSessionsByDomain[
+                    DedupeSessionKey(domain: domain, sessionID: sessionID),
+                    default: []
+                ].append((epoch: epoch, index: nativeIndex))
+            }
         }
-        func bucketedNativeCandidates(forProxyAt proxyIndex: Int) -> [Int] {
-            let record = proxyRecords[proxyIndex]
-            guard let family = toolFamily(for: record.tool) else { return [] }
-            let domain = DedupeDomain(date: record.date, family: family)
-            return nativeCandidatesByDomain[domain] ?? []
-        }
-        func remainingNativeCandidates(forProxyAt proxyIndex: Int) -> [Int] {
-            bucketedNativeCandidates(forProxyAt: proxyIndex)
-                .filter { !matchedNativeIndices.contains($0) }
+        for key in nativeSessionsByDomain.keys {
+            nativeSessionsByDomain[key]?.sort { $0.epoch < $1.epoch }
         }
 
         // Parse each distinct timestamp string once. The previous code re-parsed
@@ -57,9 +76,81 @@ extension UsageCollector {
             return epoch
         }
 
+        // Shared-identifier lookup: every native record whose request/response IDs
+        // intersect the proxy's is a candidate; the predicate below re-checks both
+        // halves so the accepted pairs stay identical to the pairwise scan.
+        func exactNativeCandidates(forProxyAt proxyIndex: Int) -> [Int] {
+            let record = proxyRecords[proxyIndex]
+            guard let family = toolFamily(for: record.tool) else { return [] }
+            let domain = DedupeDomain(date: record.date, family: family)
+            guard let identifiersByID = nativeIdentifiersByDomain[domain] else { return [] }
+            var seen = Set<Int>()
+            var candidates: [Int] = []
+            for identifier in [record.requestID, record.responseID].compactMap(nonEmptyString) {
+                for nativeIndex in identifiersByID[identifier] ?? [] where seen.insert(nativeIndex).inserted {
+                    candidates.append(nativeIndex)
+                }
+            }
+            return candidates
+        }
+
+        func firstEntry(atOrAfter entries: [(epoch: TimeInterval, index: Int)], epoch: TimeInterval) -> Int {
+            var low = 0
+            var high = entries.count
+            while low < high {
+                let mid = (low + high) / 2
+                if entries[mid].epoch < epoch {
+                    low = mid + 1
+                } else {
+                    high = mid
+                }
+            }
+            return low
+        }
+
+        func firstEntry(after entries: [(epoch: TimeInterval, index: Int)], epoch: TimeInterval) -> Int {
+            var low = 0
+            var high = entries.count
+            while low < high {
+                let mid = (low + high) / 2
+                if entries[mid].epoch <= epoch {
+                    low = mid + 1
+                } else {
+                    high = mid
+                }
+            }
+            return low
+        }
+
+        // Same-session lookup: native records sharing the proxy's session ID whose
+        // timestamp falls inside the ±10 s window are candidates; the session pass
+        // runs after the exact pass, so already-matched natives are excluded here
+        // just like the previous remainingNativeCandidates did.
+        func sessionNativeCandidates(forProxyAt proxyIndex: Int) -> [Int] {
+            let record = proxyRecords[proxyIndex]
+            guard let family = toolFamily(for: record.tool),
+                  let sessionID = nonEmptyString(record.sessionID),
+                  let proxyEpoch = cachedEpoch(record.timestamp)
+            else { return [] }
+            let key = DedupeSessionKey(
+                domain: DedupeDomain(date: record.date, family: family),
+                sessionID: sessionID
+            )
+            guard let entries = nativeSessionsByDomain[key], !entries.isEmpty else { return [] }
+            let lower = firstEntry(atOrAfter: entries, epoch: proxyEpoch - sessionEpochTolerance)
+            let upper = firstEntry(after: entries, epoch: proxyEpoch + sessionEpochTolerance)
+            var candidates: [Int] = []
+            for position in lower..<upper {
+                let nativeIndex = entries[position].index
+                guard !matchedNativeIndices.contains(nativeIndex) else { continue }
+                candidates.append(nativeIndex)
+            }
+            return candidates
+        }
+
         let exactPairs = uniqueDedupePairs(
             proxyIndices: deduplicableProxyIndices,
-            nativeCandidatesFor: bucketedNativeCandidates
+            nativeCandidatesFor: exactNativeCandidates
         ) { proxyIndex, nativeIndex in
             isSameDedupeDomain(
                 proxyRecord: proxyRecords[proxyIndex],
@@ -83,7 +174,7 @@ extension UsageCollector {
         let remainingProxyIndices = deduplicableProxyIndices.filter { !matchedProxyIndices.contains($0) }
         let sessionPairs = uniqueDedupePairs(
             proxyIndices: remainingProxyIndices,
-            nativeCandidatesFor: remainingNativeCandidates
+            nativeCandidatesFor: sessionNativeCandidates
         ) { proxyIndex, nativeIndex in
             isSameDedupeDomain(
                 proxyRecord: proxyRecords[proxyIndex],
@@ -210,7 +301,7 @@ extension UsageCollector {
         guard let proxySessionID = nonEmptyString(proxyRecord.sessionID),
               let nativeSessionID = nonEmptyString(nativeRecord.sessionID),
               proxySessionID == nativeSessionID,
-              epochsClose(proxyEpoch, nativeEpoch, seconds: 10),
+              epochsClose(proxyEpoch, nativeEpoch, seconds: sessionEpochTolerance),
               modelsCompatible(proxyRecord.model, nativeRecord.model),
               usageVectorsClose(proxyRecord: proxyRecord, nativeRecord: nativeRecord)
         else {

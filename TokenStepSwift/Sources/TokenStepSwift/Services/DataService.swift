@@ -3,7 +3,10 @@ import Foundation
 
 enum DataService {
     private static let helperName = "TokenStepHelper"
-    private static let helperTimeoutSeconds: TimeInterval = 120
+    // A cold full collection re-parses the whole local history, so the budget must
+    // cover a worst-case rescan. The indexed cross-source dedupe keeps the steady
+    // state well under the old 120 s budget; 600 s only ever matters on a cold cache.
+    private static let helperTimeoutSeconds: TimeInterval = 600
     private static let legacyCodexAccountingRevision = 5
 
     static func loadSnapshot() throws -> UsageSnapshot {
